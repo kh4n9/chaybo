@@ -30,6 +30,8 @@ export type AppSettings = {
   planStartAt: number;
   /** Speak distance/pace milestones aloud while recording. */
   voiceCoach: boolean;
+  /** Auto-pause recording after this many seconds stationary (0 = off). */
+  autoPauseSeconds: number;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -45,6 +47,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   planLevel: 'beginner',
   planStartAt: 0,
   voiceCoach: false,
+  autoPauseSeconds: 20,
 };
 
 export const WEIGHT_RANGE = { min: 35, max: 160 } as const;
@@ -67,6 +70,7 @@ const COLUMN: Record<keyof AppSettings, string> = {
   planLevel: 'plan_level',
   planStartAt: 'plan_start_at',
   voiceCoach: 'voice_coach',
+  autoPauseSeconds: 'auto_pause_seconds',
 };
 
 function numberFrom(
@@ -137,6 +141,12 @@ export async function readSettings(db: SQLiteDatabase): Promise<AppSettings> {
     voiceCoach:
       values.get(COLUMN.voiceCoach) === '1' ||
       values.get(COLUMN.voiceCoach) === 'true',
+    autoPauseSeconds: numberFrom(
+      values.get(COLUMN.autoPauseSeconds),
+      DEFAULT_SETTINGS.autoPauseSeconds,
+      0,
+      120,
+    ),
   };
 }
 

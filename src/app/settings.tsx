@@ -370,6 +370,22 @@ export default function SettingsScreen() {
                 thumbColor={palette.surface}
               />
             </View>
+
+            <Text style={[styles.choiceLabel, styles.choiceLabelSpaced]}>Tự động tạm dừng</Text>
+            <ChoiceRow
+              options={[
+                { key: '0', label: 'Tắt', hint: 'không tự dừng' },
+                { key: '10', label: '10 giây', hint: 'nhạy' },
+                { key: '20', label: '20 giây', hint: 'mặc định' },
+                { key: '30', label: '30 giây', hint: 'ít nhạy' },
+                { key: '60', label: '60 giây', hint: 'đèn đỏ dài' },
+              ]}
+              value={String(settings.autoPauseSeconds)}
+              onChange={(key) => setSetting({ autoPauseSeconds: Number(key) })}
+            />
+            <Text style={styles.toggleHint}>
+              Khi đứng yên (tốc độ ≈ 0 hoặc không di chuyển) đủ thời gian đã chọn, app tự tạm dừng; chạy lại sẽ tự tiếp tục.
+            </Text>
           </View>
         </Section>
 

@@ -100,6 +100,11 @@ function sanitizeSettings(value: unknown): AppSettings | null {
     planLevel: toPlanLevel(value.planLevel),
     planStartAt: Math.max(0, finiteNumber(value.planStartAt) ?? DEFAULT_SETTINGS.planStartAt),
     voiceCoach: value.voiceCoach === true || value.voiceCoach === 'true' || value.voiceCoach === 1 || value.voiceCoach === '1',
+    autoPauseSeconds: clamp(
+      finiteNumber(value.autoPauseSeconds) ?? DEFAULT_SETTINGS.autoPauseSeconds,
+      0,
+      120,
+    ),
   };
 }
 

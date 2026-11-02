@@ -71,7 +71,7 @@ const INITIAL: RecordingState = {
   background: false,
 };
 
-export type UseRecordingOptions = { voiceCoach?: boolean };
+export type UseRecordingOptions = { voiceCoach?: boolean; autoPauseSeconds?: number };
 
 export function useRecording(options?: UseRecordingOptions) {
   const [state, setState] = useState<RecordingState>(INITIAL);
@@ -79,6 +79,10 @@ export function useRecording(options?: UseRecordingOptions) {
   useEffect(() => {
     voiceCoachRef.current = options?.voiceCoach ?? false;
   }, [options?.voiceCoach]);
+
+  useEffect(() => {
+    autoPauseThresholdMsRef.current = (options?.autoPauseSeconds ?? 20) * 1000;
+  }, [options?.autoPauseSeconds]);
 
   const pointsRef = useRef<TrackPoint[]>([]);
   const distanceRef = useRef(0);
@@ -102,6 +106,9 @@ export function useRecording(options?: UseRecordingOptions) {
   const backgroundRef = useRef(false);
   const voiceCoachRef = useRef(options?.voiceCoach ?? false);
   const lastAnnouncedKmRef = useRef(0);
+  const autoPauseThresholdMsRef = useRef((options?.autoPauseSeconds ?? 20) * 1000);
+  const lastDistanceRef = useRef(0);
+  const lastDistanceTimeRef = useRef<number | null>(null);
 
   const clearTimers = useCallback(() => {
     if (tickRef.current) {
@@ -194,14 +201,27 @@ export function useRecording(options?: UseRecordingOptions) {
 
       const speed = lastSpeedRef.current;
       if (statusRef.current === 'recording') {
-        if (speed != null && speed < 0.4) {
-          stationaryMsRef.current += 500;
-          if (stationaryMsRef.current >= 20000) {
-            stationaryMsRef.current = 0;
-            autoPauseFnRef.current();
-          }
-        } else {
+        const threshold = autoPauseThresholdMsRef.current;
+        if (threshold <= 0) {
           stationaryMsRef.current = 0;
+        } else {
+          const distanceChanged = distanceRef.current !== lastDistanceRef.current;
+          if (distanceChanged) {
+            lastDistanceRef.current = distanceRef.current;
+            lastDistanceTimeRef.current = Date.now();
+            stationaryMsRef.current = 0;
+          } else {
+            const speedLow = speed == null || speed < 0.4;
+            if (speedLow) {
+              stationaryMsRef.current += 500;
+              if (stationaryMsRef.current >= threshold) {
+                stationaryMsRef.current = 0;
+                autoPauseFnRef.current();
+              }
+            } else {
+              stationaryMsRef.current = 0;
+            }
+          }
         }
       }
       if (statusRef.current === 'paused' && autoPausedRef.current) {
@@ -241,6 +261,8 @@ export function useRecording(options?: UseRecordingOptions) {
     lapStartDistanceRef.current = 0;
     lapStartMovingRef.current = 0;
     lastAnnouncedKmRef.current = 0;
+    lastDistanceRef.current = 0;
+    lastDistanceTimeRef.current = Date.now();
     startedAtRef.current = Date.now();
     statusRef.current = 'recording';
 
@@ -354,6 +376,8 @@ export function useRecording(options?: UseRecordingOptions) {
     stationaryMsRef.current = 0;
     movingMsRef.current = 0;
     lastAnnouncedKmRef.current = 0;
+    lastDistanceRef.current = 0;
+    lastDistanceTimeRef.current = null;
     try {
       Speech.stop();
     } catch {
@@ -397,6 +421,8 @@ export function useRecording(options?: UseRecordingOptions) {
     lapStartDistanceRef.current = 0;
     lapStartMovingRef.current = 0;
     lastAnnouncedKmRef.current = 0;
+    lastDistanceRef.current = 0;
+    lastDistanceTimeRef.current = null;
     backgroundRef.current = false;
     try {
       Speech.stop();
