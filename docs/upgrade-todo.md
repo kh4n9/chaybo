@@ -27,7 +27,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 - ⏳ 20. Lưu điểm bắt đầu/kết thúc cố định
 
 ## Lô B — Phân tích & thống kê
-- ⏳ 21. So sánh 2 buổi chạy (/compare)
+- ✅ 21. So sánh 2 buổi chạy (/compare)
 - ✅ 22. Tổng kết tháng (card Thống kê)
 - ⏳ 23. Xu hướng VO2max theo thời gian
 - ✅ 24. Phân vùng pace (easy/moderate/hard) (nhãn)
