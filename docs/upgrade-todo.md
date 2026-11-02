@@ -14,13 +14,13 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 - ✅ 9. Nhãn vùng pace trong chi tiết
 
 ## Lô A — Ghi & theo dõi
-- ⏳ 10. Ảnh đính kèm buổi chạy
-- ⏳ 11. Nhắc uống nước mỗi 20 phút khi ghi
+- ✅ 10. Auto-lap mỗi km (tự động)
+- ✅ 11. Nhắc uống nước mỗi 20 phút khi ghi
 - ⏳ 12. Warmup/cooldown timer
 - ⏳ 13. Đếm bước (cadence) qua pedometer
 - ⏳ 14. Nhập nhịp tim thủ công (avg HR)
 - ⏳ 15. Pace smoothing (lọc nhiễu GPS)
-- ⏳ 16. Auto-lap mỗi km
+- ⏳ 16. Ảnh đính kèm buổi chạy
 - ⏳ 17. Route replay animation trên bản đồ
 - ⏳ 18. Treadmill mode (chạy trong nhà)
 - ⏳ 19. GPS accuracy indicator
@@ -28,7 +28,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 
 ## Lô B — Phân tích & thống kê
 - ⏳ 21. So sánh 2 buổi chạy (/compare)
-- ⏳ 22. Tổng kết tháng (card Thống kê)
+- ✅ 22. Tổng kết tháng (card Thống kê)
 - ⏳ 23. Xu hướng VO2max theo thời gian
 - ⏳ 24. Phân vùng pace (easy/moderate/hard)
 - ⏳ 25. Biểu đồ độ cao chi tiết
