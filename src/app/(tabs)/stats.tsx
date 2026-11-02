@@ -68,6 +68,7 @@ export default function StatsScreen() {
       monthGoal: now ? monthProgress(activities, now, settings.monthlyGoalKm) : null,
       yearGoal: now ? yearProgress(activities, now, settings.yearlyGoalKm) : null,
       vo2: bestVo2max(activities),
+
        weekdays: weekdayStats(activities),
        timeBuckets: timeOfDayStats(activities),
     };
