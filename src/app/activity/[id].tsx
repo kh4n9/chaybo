@@ -360,6 +360,20 @@ export default function ActivityDetailScreen() {
         <View style={styles.secondaryRow}>
           <Meta label="Calo" value={`${activity.calories} kcal`} />
           <Meta label="Pace tốt nhất" value={`${u.pace(activity.bestPaceS)}${u.paceLabel}`} />
+          <Meta
+            label="Vùng pace"
+            value={
+              activity.avgPaceS && activity.bestPaceS
+                ? (() => {
+                    const ratio = activity.avgPaceS / activity.bestPaceS;
+                    if (ratio <= 1.05) return 'Nhanh';
+                    if (ratio <= 1.15) return 'Vừa';
+                    if (ratio <= 1.3) return 'Dễ';
+                    return 'Phục hồi';
+                  })()
+                : '--'
+            }
+          />
           <Meta label="Thời tiết" value={activity.weather ?? '--'} />
         </View>
 
