@@ -81,6 +81,7 @@ function toActivity(row: ActivityRow): Activity {
     gearId: row.gear_id ?? null,
     favorite: row.favorite === 1,
     notes: row.notes ?? '',
+    photos: parseJson<string[]>(row.photos, []),
     route: parseJson<TrackPoint[]>(row.route, []),
     preview: parseJson<TrackPoint[]>(row.preview, []),
     splits: parseJson<Split[]>(row.splits, []),
@@ -107,7 +108,7 @@ export async function getActivity(db: SQLiteDatabase, id: string): Promise<Activ
   return row ? toActivity(row) : null;
 }
 
-export type SaveActivityInput = Omit<Activity, 'id' | 'title' | 'preview' | 'notes' | 'feeling' | 'runType' | 'weather' | 'gearId' | 'favorite'> & {
+export type SaveActivityInput = Omit<Activity, 'id' | 'title' | 'preview' | 'notes' | 'feeling' | 'runType' | 'weather' | 'gearId' | 'favorite' | 'photos'> & {
   id?: string;
   title?: string;
   notes?: string;
@@ -116,6 +117,7 @@ export type SaveActivityInput = Omit<Activity, 'id' | 'title' | 'preview' | 'not
   weather?: string | null;
   gearId?: string | null;
   favorite?: boolean;
+  photos?: string[];
 };
 
 export function newActivityId(): string {
@@ -133,8 +135,8 @@ export async function saveActivity(
     `INSERT OR REPLACE INTO activities
       (id, title, started_at, ended_at, duration_s, elapsed_s, distance_m,
        avg_pace_s, best_pace_s, elev_gain_m, calories, route, preview, splits,
-       notes, feeling, run_type, weather, gear_id, favorite, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       notes, feeling, run_type, weather, gear_id, favorite, photos, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     input.title ?? 'Buổi chạy',
     input.startedAt,
@@ -155,6 +157,7 @@ export async function saveActivity(
     input.weather ?? null,
     input.gearId ?? null,
     input.favorite ? 1 : 0,
+    JSON.stringify(input.photos ?? []),
     now,
   );
 
@@ -206,6 +209,18 @@ export async function updateActivityFavorite(
   favorite: boolean,
 ): Promise<void> {
   await db.runAsync('UPDATE activities SET favorite = ? WHERE id = ?', favorite ? 1 : 0, id);
+}
+
+export async function updateActivityPhotos(
+  db: SQLiteDatabase,
+  id: string,
+  photos: string[],
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE activities SET photos = ? WHERE id = ?',
+    JSON.stringify(photos.slice(0, 12)),
+    id,
+  );
 }
 
 export async function getPreviousActivity(

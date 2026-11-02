@@ -44,6 +44,7 @@ export type ActivityRow = {
   weather: string | null;
   gear_id: string | null;
   favorite: number;
+  photos: string;
   created_at: number;
 };
 
@@ -72,6 +73,7 @@ export type Activity = ActivitySummary & {
   weather: string | null;
   gearId: string | null;
   favorite: boolean;
+  photos: string[];
   route: TrackPoint[];
   splits: Split[];
 };

@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
+import * as ImagePicker from 'expo-image-picker';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -33,6 +35,7 @@ import {
   updateActivityFavorite,
   updateActivityRunType,
   updateActivityTitle,
+  updateActivityPhotos,
 } from '@/db/activities';
 import { listGear, recomputeGearDistance, type Gear } from '@/db/gear';
 import { buildGpx, fileStamp, shareTextFile } from '@/lib/export';
@@ -220,6 +223,37 @@ export default function ActivityDetailScreen() {
     } finally {
       setSavingNotes(false);
     }
+  };
+
+  const addPhoto = async () => {
+    if (!activity) return;
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Cần quyền', 'Cho phép truy cập thư viện ảnh để đính kèm.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.7,
+        selectionLimit: 4,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const uris = result.assets.map((a) => a.uri);
+      const next = [...(activity.photos ?? []), ...uris].slice(0, 12);
+      await updateActivityPhotos(db, activity.id, next);
+      setActivity((prev) => (prev ? { ...prev, photos: next } : prev));
+    } catch {
+      Alert.alert('Có lỗi', 'Không thêm được ảnh.');
+    }
+  };
+
+  const removePhoto = async (uri: string) => {
+    if (!activity) return;
+    const next = (activity.photos ?? []).filter((p) => p !== uri);
+    await updateActivityPhotos(db, activity.id, next);
+    setActivity((prev) => (prev ? { ...prev, photos: next } : prev));
   };
 
   const saveRunType = async (next: RunType | null) => {
@@ -717,6 +751,37 @@ export default function ActivityDetailScreen() {
           </View>
         </View>
 
+        <View style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Eyebrow>Ảnh buổi chạy</Eyebrow>
+            <Text style={styles.sectionHint}>{(activity.photos ?? []).length}/12</Text>
+          </View>
+          <View style={styles.photoRow}>
+            {(activity.photos ?? []).map((uri) => (
+              <View key={uri} style={styles.photoWrap}>
+                <Image source={{ uri }} style={styles.photo} />
+                <Pressable
+                  onPress={() => void removePhoto(uri)}
+                  style={styles.photoRemove}
+                  accessibilityLabel="Xoá ảnh"
+                >
+                  <Ionicons name="close" size={14} color="#fff" />
+                </Pressable>
+              </View>
+            ))}
+            {(activity.photos ?? []).length < 12 ? (
+              <Pressable
+                onPress={() => void addPhoto()}
+                style={styles.photoAdd}
+                accessibilityRole="button"
+                accessibilityLabel="Thêm ảnh"
+              >
+                <Ionicons name="add" size={24} color={palette.accent} />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+
         <Button
           label="Tạo ảnh chia sẻ"
           icon="share-outline"
@@ -1022,6 +1087,31 @@ const createStyles = (c: Palette) =>
     marginBottom: 14,
   },
   sectionHint: { fontSize: 10, color: c.textFaint },
+  photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  photoWrap: { width: 88, height: 88, borderRadius: radius.sm, overflow: 'hidden', position: 'relative' },
+  photo: { width: '100%', height: '100%' },
+  photoRemove: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoAdd: {
+    width: 88,
+    height: 88,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: c.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.surface,
+  },
   effortList: {
     backgroundColor: c.surface,
     borderRadius: radius.md,

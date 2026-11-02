@@ -201,6 +201,9 @@ function sanitizeActivity(value: unknown, weightKg: number): Activity | null {
     gearId: null,
     favorite: false,
     notes,
+    photos: Array.isArray(value.photos)
+      ? value.photos.filter((p): p is string => typeof p === 'string').slice(0, 12)
+      : [],
     route,
     preview: makePreview(route),
     splits,
