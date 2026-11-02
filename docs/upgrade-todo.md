@@ -17,13 +17,13 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 - ✅ 10. Auto-lap mỗi km (tự động)
 - ✅ 11. Nhắc uống nước mỗi 20 phút khi ghi
 - ✅ 12. Warmup/cooldown timer (đã có trong interval)
-- ⏳ 13. Đếm bước (cadence) qua pedometer
-- ⏳ 14. Nhập nhịp tim thủ công (avg HR)
+- ✅ 13. Đếm bước (cadence) qua pedometer
+- ✅ 14. Nhập nhịp tim thủ công (avg HR)
 - ⏳ 15. Pace smoothing (lọc nhiễu GPS)
 - ✅ 16. Ảnh đính kèm buổi chạy
 - ⏳ 17. Route replay animation trên bản đồ
-- ⏳ 18. Treadmill mode (chạy trong nhà)
-- ⏳ 19. GPS accuracy indicator
+- ✅ 18. Treadmill mode (chạy trong nhà)
+- ✅ 19. GPS accuracy indicator
 - ⏳ 20. Lưu điểm bắt đầu/kết thúc cố định
 
 ## Lô B — Phân tích & thống kê
