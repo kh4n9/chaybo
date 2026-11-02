@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
 import type { DayCell } from '@/lib/calendar';
-import { formatKmShort } from '@/lib/format';
-import { colors } from '@/lib/theme';
+
+import { withAlpha, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
+import { useUnit } from '@/hooks/useUnit';
 
 type Props = {
   /** Columns of 7 days, Monday first, oldest first. */
@@ -16,6 +18,9 @@ const LABEL_WIDTH = 18;
 
 /** GitHub-style training calendar: one column per week, one cell per day. */
 export function TrainingHeatmap({ weeks }: Props) {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const [width, setWidth] = useState(0);
 
   const onLayout = (event: LayoutChangeEvent) => {
@@ -54,8 +59,8 @@ export function TrainingHeatmap({ weeks }: Props) {
             const background = day.future
               ? 'transparent'
               : day.distanceM > 0
-                ? `rgba(216, 255, 62, ${alpha.toFixed(2)})`
-                : colors.surfaceAlt;
+                ? withAlpha(palette.accentFill, alpha)
+                : palette.surfaceAlt;
 
             return (
               <View
@@ -64,7 +69,7 @@ export function TrainingHeatmap({ weeks }: Props) {
                   day.future
                     ? 'Ngày chưa tới'
                     : day.count > 0
-                      ? `${formatKmShort(day.distanceM)} km, ${day.count} buổi`
+                      ? `${u.dist(day.distanceM)} ${u.label}, ${day.count} buổi`
                       : 'Không chạy'
                 }
                 style={[
@@ -75,7 +80,7 @@ export function TrainingHeatmap({ weeks }: Props) {
                     marginRight: GAP,
                     backgroundColor: background,
                     borderWidth: day.future ? StyleSheet.hairlineWidth : 0,
-                    borderColor: colors.border,
+                    borderColor: palette.border,
                   },
                 ]}
               />
@@ -87,13 +92,14 @@ export function TrainingHeatmap({ weeks }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   root: { gap: 3 },
   monthRow: { flexDirection: 'row', paddingLeft: LABEL_WIDTH + GAP, height: 12 },
   monthLabel: {
     fontSize: 8,
     fontWeight: '600',
-    color: colors.textFaint,
+    color: c.textFaint,
     fontVariant: ['tabular-nums'],
   },
   row: { flexDirection: 'row', alignItems: 'center' },
@@ -101,7 +107,7 @@ const styles = StyleSheet.create({
     width: LABEL_WIDTH,
     fontSize: 8,
     fontWeight: '600',
-    color: colors.textFaint,
+    color: c.textFaint,
   },
   cell: { borderRadius: 3 },
 });

@@ -5,6 +5,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { estimateCalories, elevationGain, haversine, isAcceptablePoint, paceFromSpeed } from '@/lib/geo';
 import { bestPaceFromSplits, computeSplits } from '@/lib/splits';
+import {
+  setBackgroundLocationListener,
+  startBackgroundLocation,
+  stopBackgroundLocation,
+} from '@/lib/backgroundLocation';
 import type { Split, TrackPoint } from '@/lib/types';
 
 const KEEP_AWAKE_TAG = 'chaybo-recording';
@@ -45,6 +50,8 @@ export type RecordingState = {
   autoPaused: boolean;
   /** Manual laps taken by the runner. */
   laps: RecordingLap[];
+  /** True when this session is also tracked in the background. */
+  background: boolean;
 };
 
 const INITIAL: RecordingState = {
@@ -58,6 +65,8 @@ const INITIAL: RecordingState = {
   error: null,
   autoPaused: false,
   laps: [],
+  /** True when this session is also tracked in the background. */
+  background: false,
 };
 
 export function useRecording() {
@@ -82,6 +91,7 @@ export function useRecording() {
   const movingMsRef = useRef(0);
   const autoPauseFnRef = useRef<() => void>(() => {});
   const autoResumeFnRef = useRef<() => void>(() => {});
+  const backgroundRef = useRef(false);
 
   const clearTimers = useCallback(() => {
     if (tickRef.current) {
@@ -93,6 +103,9 @@ export function useRecording() {
   const stopWatcher = useCallback(() => {
     subscriptionRef.current?.remove();
     subscriptionRef.current = null;
+    setBackgroundLocationListener(null);
+    void stopBackgroundLocation();
+    backgroundRef.current = false;
   }, []);
 
   const movingSeconds = useCallback(() => {
@@ -202,23 +215,34 @@ export function useRecording() {
     startedAtRef.current = Date.now();
     statusRef.current = 'recording';
 
+    // Try to enable background tracking. This may prompt for "Always" permission.
+    const background = await startBackgroundLocation().catch(() => false);
+    backgroundRef.current = background;
+
     setState({
       ...INITIAL,
       status: 'recording',
       startedAt: startedAtRef.current,
+      background,
     });
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     void activateKeepAwakeAsync(KEEP_AWAKE_TAG);
 
-    subscriptionRef.current = await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.BestForNavigation,
-        timeInterval: 1000,
-        distanceInterval: 2,
-      },
-      onLocation,
-    );
+    if (background) {
+      setBackgroundLocationListener((locations) => {
+        locations.forEach((location) => onLocation(location));
+      });
+    } else {
+      subscriptionRef.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 1000,
+          distanceInterval: 2,
+        },
+        onLocation,
+      );
+    }
 
     startTick();
     return true;
@@ -305,7 +329,7 @@ export function useRecording() {
     void deactivateKeepAwake(KEEP_AWAKE_TAG);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    setState((prev) => ({ ...prev, status: 'idle', currentPaceS: null, autoPaused: false }));
+    setState((prev) => ({ ...prev, status: 'idle', currentPaceS: null, autoPaused: false, background: false }));
 
     if (distanceM < 50) return null;
 
@@ -337,6 +361,9 @@ export function useRecording() {
     lapsRef.current = [];
     lapStartDistanceRef.current = 0;
     lapStartMovingRef.current = 0;
+    backgroundRef.current = false;
+    void stopBackgroundLocation();
+    setBackgroundLocationListener(null);
     setState(INITIAL);
   }, []);
 
@@ -344,6 +371,8 @@ export function useRecording() {
     return () => {
       subscriptionRef.current?.remove();
       subscriptionRef.current = null;
+      setBackgroundLocationListener(null);
+      void stopBackgroundLocation();
       if (tickRef.current) clearInterval(tickRef.current);
       void deactivateKeepAwake(KEEP_AWAKE_TAG);
     };

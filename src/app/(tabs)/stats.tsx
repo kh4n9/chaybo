@@ -13,13 +13,8 @@ import { useActivities } from '@/hooks/useActivities';
 import { useSettings } from '@/hooks/useSettings';
 import { buildBadges, earnedCount } from '@/lib/badges';
 import { longestStreak, trainingWeeks } from '@/lib/calendar';
-import {
-  formatDayLabel,
-  formatDuration,
-  formatKmDecimal,
-  formatPace,
-  startOfWeek,
-} from '@/lib/format';
+import { formatDayLabel, formatDuration, startOfWeek } from '@/lib/format';
+import { useUnit } from '@/hooks/useUnit';
 import { currentStreakWithFreeze, freezesUsed, monthProgress, yearProgress } from '@/lib/goals';
 import { favouriteTimeBucket, favouriteWeekday, timeOfDayStats, weekdayStats } from '@/lib/rhythm';
 import { trainingLoad, trainingLoadLabel } from '@/lib/trainingLoad';
@@ -30,11 +25,15 @@ import {
   totalsOf,
   weeklyBuckets,
 } from '@/lib/stats';
-import { colors, radius } from '@/lib/theme';
+import { radius, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 
 const BADGE_PREVIEW = 6;
 
 export default function StatsScreen() {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const router = useRouter();
   const { activities, fetchedAt } = useActivities();
   const { settings } = useSettings();
@@ -105,27 +104,27 @@ export default function StatsScreen() {
 
         <View style={styles.hero}>
           <View style={styles.heroNumberLine}>
-            <Text style={styles.heroNumber}>{formatKmDecimal(all.distanceM, 1)}</Text>
-            <Text style={styles.heroUnit}>km</Text>
+            <Text style={styles.heroNumber}>{u.dist(all.distanceM, 1)}</Text>
+            <Text style={styles.heroUnit}>{u.label}</Text>
           </View>
           <Text style={styles.heroSub}>{all.count} buổi chạy đã ghi lại</Text>
         </View>
 
         <View style={styles.grid}>
           <Tile label="Thời gian" value={formatDuration(all.durationS)} />
-          <Tile label="Pace trung bình" value={formatPace(avgPace)} suffix="/km" />
-          <Tile label="Độ cao" value={`${Math.round(all.elevGainM)}`} suffix="m" />
+          <Tile label="Pace trung bình" value={u.pace(avgPace)} suffix={u.paceLabel} />
+          <Tile label="Độ cao" value={u.elev(all.elevGainM)} suffix={u.elevLabel} />
           <Tile
             label="Trung bình / buổi"
-            value={all.count > 0 ? formatKmDecimal(all.distanceM / all.count, 1) : '0'}
-            suffix="km"
+            value={all.count > 0 ? u.dist(all.distanceM / all.count, 1) : '0'}
+            suffix={u.label}
           />
         </View>
 
         <Section title="Chuỗi ngày">
           <View style={styles.streakCard}>
             <View style={styles.streakFlame}>
-              <Ionicons name="flame" size={22} color={colors.accent} />
+              <Ionicons name="flame" size={22} color={palette.accent} />
             </View>
             <View style={styles.streakMain}>
               <Text style={styles.streakNumber}>{streakNow}</Text>
@@ -145,18 +144,18 @@ export default function StatsScreen() {
         <Section title="Tuần này">
           <View style={styles.compareRow}>
             <View style={styles.compareCol}>
-              <Text style={styles.compareValue}>{formatKmDecimal(thisWeek.distanceM, 1)}</Text>
+              <Text style={styles.compareValue}>{u.dist(thisWeek.distanceM, 1)}</Text>
               <Text style={styles.compareLabel}>km · {thisWeek.count} buổi</Text>
             </View>
             <View style={styles.compareCol}>
-              <Text style={styles.compareValueDim}>{formatKmDecimal(lastWeek.distanceM, 1)}</Text>
+              <Text style={styles.compareValueDim}>{u.dist(lastWeek.distanceM, 1)}</Text>
               <Text style={styles.compareLabel}>tuần trước</Text>
             </View>
             <View style={[styles.deltaPill, weekDelta >= 0 ? styles.deltaUp : styles.deltaDown]}>
               <Text
                 style={[
                   styles.deltaText,
-                  { color: weekDelta >= 0 ? colors.accent : colors.danger },
+                  { color: weekDelta >= 0 ? palette.accent : palette.danger },
                 ]}
               >
                 {weekDelta >= 0 ? '+' : ''}
@@ -193,7 +192,7 @@ export default function StatsScreen() {
           <Section title="Lịch tập 16 tuần">
             <TrainingHeatmap weeks={heatmap} />
             <Text style={styles.chartFootnote}>
-              Mỗi ô là một ngày · càng sáng càng nhiều km · cột cuối là tuần này
+              Mỗi ô là một ngày · càng sáng càng nhiều {u.label} · cột cuối là tuần này
             </Text>
           </Section>
         ) : null}
@@ -207,7 +206,7 @@ export default function StatsScreen() {
             />
           ) : null}
           <Text style={styles.chartFootnote}>
-            Cột sáng là tuần hiện tại · đơn vị km
+            Cột sáng là tuần hiện tại · đơn vị {u.label}
           </Text>
         </Section>
 
@@ -238,7 +237,7 @@ export default function StatsScreen() {
               <View key={bucket.key} style={styles.timeBucketCard}>
                 <Text style={styles.timeBucketLabel}>{bucket.label}</Text>
                 <Text style={styles.timeBucketValue}>{bucket.count}</Text>
-                <Text style={styles.timeBucketHint}>{formatKmDecimal(bucket.distanceM, 1)} km</Text>
+                <Text style={styles.timeBucketHint}>{u.dist(bucket.distanceM, 1)} {u.label}</Text>
               </View>
             ))}
           </View>
@@ -259,13 +258,13 @@ export default function StatsScreen() {
           accessibilityLabel="Mở lịch tháng"
         >
           <View style={styles.linkIcon}>
-            <Ionicons name="calendar-outline" size={17} color={colors.accent} />
+            <Ionicons name="calendar-outline" size={17} color={palette.accent} />
           </View>
           <View style={styles.linkText}>
             <Text style={styles.linkTitle}>Lịch chạy theo tháng</Text>
             <Text style={styles.linkHint}>Xem từng ngày đã chạy và chọn ngày xem buổi</Text>
           </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+          <Ionicons name="chevron-forward" size={16} color={palette.textFaint} />
         </Pressable>
 
         {load ? (
@@ -298,7 +297,7 @@ export default function StatsScreen() {
               <View style={styles.vo2Body}>
                 <Text style={styles.vo2Label}>{vo2.label}</Text>
                 <Text style={styles.vo2Hint}>
-                  Từ {formatKmDecimal(vo2.sourceDistanceM)} km trong {formatDuration(vo2.sourceTimeS)}
+                  Từ {u.dist(vo2.sourceDistanceM)} {u.label} trong {formatDuration(vo2.sourceTimeS)}
                 </Text>
               </View>
             </View>
@@ -312,17 +311,17 @@ export default function StatsScreen() {
         <Section title="Kỷ lục cá nhân">
           <RecordRow
             label="Chạy xa nhất"
-            value={records.longest ? `${formatKmDecimal(records.longest.distanceM)} km` : '--'}
+            value={records.longest ? `${u.dist(records.longest.distanceM)} ${u.label}` : '--'}
             detail={records.longest ? formatDayLabel(records.longest.startedAt) : undefined}
           />
           <RecordRow
             label="Pace tốt nhất"
-            value={records.fastest ? `${formatPace(records.fastest.avgPaceS)}/km` : '--'}
+            value={records.fastest ? `${u.pace(records.fastest.avgPaceS)}${u.paceLabel}` : '--'}
             detail={records.fastest ? formatDayLabel(records.fastest.startedAt) : undefined}
           />
           <RecordRow
             label="Leo nhiều nhất"
-            value={records.biggestClimb ? `${Math.round(records.biggestClimb.elevGainM)} m` : '--'}
+            value={records.biggestClimb ? `${u.elev(records.biggestClimb.elevGainM)} ${u.elevLabel}` : '--'}
             detail={records.biggestClimb ? formatDayLabel(records.biggestClimb.startedAt) : undefined}
             last
           />
@@ -334,13 +333,13 @@ export default function StatsScreen() {
             accessibilityLabel="Xem kỷ lục theo cự ly"
           >
             <View style={styles.linkIcon}>
-              <Ionicons name="stopwatch-outline" size={17} color={colors.accent} />
+              <Ionicons name="stopwatch-outline" size={17} color={palette.accent} />
             </View>
             <View style={styles.linkText}>
               <Text style={styles.linkTitle}>Best effort 400 m → 10 km</Text>
               <Text style={styles.linkHint}>Nhanh nhất ở từng cự ly, kèm buổi chạy tương ứng</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+            <Ionicons name="chevron-forward" size={16} color={palette.textFaint} />
           </Pressable>
         </Section>
 
@@ -398,7 +397,7 @@ export default function StatsScreen() {
                 <Ionicons
                   name={showAllBadges ? 'chevron-up' : 'chevron-down'}
                   size={14}
-                  color={colors.accent}
+                  color={palette.accent}
                 />
               </Pressable>
             ) : null}
@@ -415,6 +414,7 @@ function deltaPct(current: number, previous: number): number {
 }
 
 function Tile({ label, value, suffix }: { label: string; value: string; suffix?: string }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.tile}>
       <Text style={styles.tileLabel}>{label.toUpperCase()}</Text>
@@ -427,6 +427,7 @@ function Tile({ label, value, suffix }: { label: string; value: string; suffix?:
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.section}>
       <Eyebrow style={styles.sectionTitle}>{title}</Eyebrow>
@@ -446,6 +447,7 @@ function RecordRow({
   detail?: string;
   last?: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={[styles.recordRow, last && { borderBottomWidth: 0 }]}>
       <View>
@@ -468,6 +470,8 @@ function NavRow({
   hint: string;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   return (
     <Pressable
       onPress={onPress}
@@ -476,13 +480,13 @@ function NavRow({
       accessibilityLabel={title}
     >
       <View style={styles.linkIcon}>
-        <Ionicons name={icon} size={17} color={colors.accent} />
+        <Ionicons name={icon} size={17} color={palette.accent} />
       </View>
       <View style={styles.linkText}>
         <Text style={styles.linkTitle}>{title}</Text>
         <Text style={styles.linkHint}>{hint}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+      <Ionicons name="chevron-forward" size={16} color={palette.textFaint} />
     </Pressable>
   );
 }
@@ -500,6 +504,8 @@ function GoalBar({
   daysLeft: number;
   onPress: () => void;
 }) {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
   const pct = targetM > 0 ? Math.min(1, doneM / targetM) : 0;
 
   return (
@@ -518,7 +524,7 @@ function GoalBar({
       </View>
       <View style={styles.goalFoot}>
         <Text style={styles.goalNumbers}>
-          {formatKmDecimal(doneM, 1)} / {targetM > 0 ? formatKmDecimal(targetM, 0) : '--'} km
+          {u.dist(doneM, 1)} / {targetM > 0 ? u.dist(targetM, 0) : '--'} {u.label}
         </Text>
         <Text style={styles.goalDays}>
           {targetM > 0 ? `${daysLeft} ngày còn lại` : 'Nhấn để đặt'}
@@ -528,12 +534,13 @@ function GoalBar({
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   content: { paddingHorizontal: 20, paddingBottom: 32 },
   header: { paddingTop: 8, paddingBottom: 20 },
-  title: { fontSize: 30, fontWeight: '800', letterSpacing: -1.2, color: colors.text },
-  subtitle: { fontSize: 12, color: colors.textFaint, marginTop: 2 },
+  title: { fontSize: 30, fontWeight: '800', letterSpacing: -1.2, color: c.text },
+  subtitle: { fontSize: 12, color: c.textFaint, marginTop: 2 },
   hero: { paddingBottom: 22 },
   heroNumberLine: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   heroNumber: {
@@ -541,54 +548,54 @@ const styles = StyleSheet.create({
     lineHeight: 62,
     fontWeight: '800',
     letterSpacing: -3,
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
-  heroUnit: { fontSize: 17, fontWeight: '700', color: colors.accent },
-  heroSub: { fontSize: 13, color: colors.textDim, marginTop: 2 },
+  heroUnit: { fontSize: 17, fontWeight: '700', color: c.accent },
+  heroSub: { fontSize: 13, color: c.textDim, marginTop: 2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   tile: {
     width: '47.5%',
     flexGrow: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 14,
   },
   tileLabel: {
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1.1,
-    color: colors.textFaint,
+    color: c.textFaint,
     marginBottom: 6,
   },
   tileValueLine: { flexDirection: 'row', alignItems: 'baseline', gap: 3 },
   tileValue: {
     fontSize: 21,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.6,
     fontVariant: ['tabular-nums'],
   },
-  tileSuffix: { fontSize: 10, color: colors.textFaint },
+  tileSuffix: { fontSize: 10, color: c.textFaint },
   section: { marginTop: 30 },
   sectionTitle: { marginBottom: 14 },
   streakCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 16,
   },
   streakFlame: {
     width: 42,
     height: 42,
     borderRadius: radius.pill,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: c.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -598,27 +605,27 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     fontWeight: '800',
     letterSpacing: -1.2,
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
-  streakUnit: { fontSize: 11, color: colors.textDim, marginTop: 1 },
-  streakFreeze: { fontSize: 9, color: colors.textFaint, marginTop: 3 },
+  streakUnit: { fontSize: 11, color: c.textDim, marginTop: 1 },
+  streakFreeze: { fontSize: 9, color: c.textFaint, marginTop: 3 },
   streakDivider: {
     width: StyleSheet.hairlineWidth,
     height: 34,
-    backgroundColor: colors.border,
+    backgroundColor: c.border,
   },
   streakSide: { alignItems: 'flex-end', gap: 4 },
   streakSideLabel: {
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1,
-    color: colors.textFaint,
+    color: c.textFaint,
   },
   streakSideValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
   compareRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 18 },
@@ -626,42 +633,42 @@ const styles = StyleSheet.create({
   compareValue: {
     fontSize: 26,
     fontWeight: '800',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -1,
     fontVariant: ['tabular-nums'],
   },
   compareValueDim: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.textFaint,
+    color: c.textFaint,
     letterSpacing: -0.6,
     fontVariant: ['tabular-nums'],
   },
-  compareLabel: { fontSize: 11, color: colors.textFaint },
+  compareLabel: { fontSize: 11, color: c.textFaint },
   deltaPill: {
     marginLeft: 'auto',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: radius.pill,
   },
-  deltaUp: { backgroundColor: colors.accentSoft },
-  deltaDown: { backgroundColor: colors.dangerSoft },
+  deltaUp: { backgroundColor: c.accentSoft },
+  deltaDown: { backgroundColor: c.dangerSoft },
   deltaText: { fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  chartFootnote: { fontSize: 10, color: colors.textFaint, marginTop: 10 },
+  chartFootnote: { fontSize: 10, color: c.textFaint, marginTop: 10 },
   recordRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: c.border,
   },
-  recordLabel: { fontSize: 14, color: colors.text, fontWeight: '600' },
-  recordDetail: { fontSize: 11, color: colors.textFaint, marginTop: 2 },
+  recordLabel: { fontSize: 14, color: c.text, fontWeight: '600' },
+  recordDetail: { fontSize: 11, color: c.textFaint, marginTop: 2 },
   recordValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.accent,
+    color: c.accent,
     fontVariant: ['tabular-nums'],
   },
   linkRow: {
@@ -669,23 +676,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginTop: 16,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 14,
   },
   linkIcon: {
     width: 34,
     height: 34,
     borderRadius: radius.sm,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: c.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   linkText: { flex: 1 },
-  linkTitle: { fontSize: 13, fontWeight: '700', color: colors.text },
-  linkHint: { fontSize: 10, color: colors.textFaint, marginTop: 3 },
+  linkTitle: { fontSize: 13, fontWeight: '700', color: c.text },
+  linkHint: { fontSize: 10, color: c.textFaint, marginTop: 3 },
   toggle: {
     marginTop: 12,
     flexDirection: 'row',
@@ -694,32 +701,32 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
   },
-  toggleText: { fontSize: 12, fontWeight: '600', color: colors.accent },
+  toggleText: { fontSize: 12, fontWeight: '600', color: c.accent },
   timeBucketRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   timeBucketCard: {
     width: '47.5%',
     flexGrow: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 14,
     gap: 2,
   },
-  timeBucketLabel: { fontSize: 10, fontWeight: '700', color: colors.textFaint, letterSpacing: 0.4 },
+  timeBucketLabel: { fontSize: 10, fontWeight: '700', color: c.textFaint, letterSpacing: 0.4 },
   timeBucketValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
     letterSpacing: -0.6,
   },
-  timeBucketHint: { fontSize: 10, color: colors.textDim },
+  timeBucketHint: { fontSize: 10, color: c.textDim },
   loadCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 16,
     gap: 10,
   },
@@ -728,58 +735,58 @@ const styles = StyleSheet.create({
   loadValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
     letterSpacing: -0.6,
   },
-  loadLabel: { fontSize: 10, color: colors.textFaint },
+  loadLabel: { fontSize: 10, color: c.textFaint },
   loadPill: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: radius.pill,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: c.accentSoft,
   },
-  loadPillDanger: { backgroundColor: colors.dangerSoft },
-  loadPillText: { fontSize: 11, fontWeight: '700', color: colors.accent },
+  loadPillDanger: { backgroundColor: c.dangerSoft },
+  loadPillText: { fontSize: 11, fontWeight: '700', color: c.accent },
   goalCard: {
     marginTop: 10,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 14,
     gap: 9,
   },
   goalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  goalLabel: { fontSize: 12, fontWeight: '700', color: colors.text },
+  goalLabel: { fontSize: 12, fontWeight: '700', color: c.text },
   goalPct: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.accent,
+    color: c.accent,
     fontVariant: ['tabular-nums'],
   },
   goalBar: {
     height: 6,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     overflow: 'hidden',
   },
-  goalFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.accent },
+  goalFill: { height: '100%', borderRadius: radius.pill, backgroundColor: c.accent },
   goalFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   goalNumbers: {
     fontSize: 10,
-    color: colors.textDim,
+    color: c.textDim,
     fontVariant: ['tabular-nums'],
   },
-  goalDays: { fontSize: 10, color: colors.textFaint },
+  goalDays: { fontSize: 10, color: c.textFaint },
   vo2Card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 18,
   },
   vo2Value: {
@@ -787,10 +794,10 @@ const styles = StyleSheet.create({
     lineHeight: 44,
     fontWeight: '800',
     letterSpacing: -2,
-    color: colors.accent,
+    color: c.accent,
     fontVariant: ['tabular-nums'],
   },
   vo2Body: { flex: 1, gap: 3 },
-  vo2Label: { fontSize: 14, fontWeight: '700', color: colors.text },
-  vo2Hint: { fontSize: 10, color: colors.textFaint },
+  vo2Label: { fontSize: 14, fontWeight: '700', color: c.text },
+  vo2Hint: { fontSize: 10, color: c.textFaint },
 });

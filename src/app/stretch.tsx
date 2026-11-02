@@ -3,7 +3,8 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Eyebrow, IconButton } from '@/components/ui';
-import { colors, radius } from '@/lib/theme';
+import { radius, type Palette } from '@/lib/theme';
+import { useThemedStyles } from '@/hooks/useTheme';
 
 const STRETCHES = [
   { name: 'Căng đùi trước', desc: 'Đứng, kéo gót chân về phía mông, giữ 30 giây mỗi bên.' },
@@ -15,6 +16,7 @@ const STRETCHES = [
 ];
 
 export default function StretchScreen() {
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -42,8 +44,9 @@ export default function StretchScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -55,17 +58,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.2,
   },
   headerSpacer: { width: 36 },
   content: { paddingHorizontal: 20, paddingBottom: 40, gap: 12 },
-  subtitle: { fontSize: 12, color: colors.textFaint, marginBottom: 4 },
+  subtitle: { fontSize: 12, color: c.textFaint, marginBottom: 4 },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 14,
     gap: 6,
   },
@@ -74,11 +77,11 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: radius.pill,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: c.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  indexText: { fontSize: 12, fontWeight: '700', color: colors.accent },
-  cardTitle: { fontSize: 14, fontWeight: '700', color: colors.text },
-  cardBody: { fontSize: 12, lineHeight: 18, color: colors.textDim },
+  indexText: { fontSize: 12, fontWeight: '700', color: c.accent },
+  cardTitle: { fontSize: 14, fontWeight: '700', color: c.text },
+  cardBody: { fontSize: 12, lineHeight: 18, color: c.textDim },
 });

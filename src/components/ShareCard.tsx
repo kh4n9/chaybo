@@ -1,8 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { formatDuration, formatFullDate, formatKmDecimal, formatPace } from '@/lib/format';
-import { colors, monoFont } from '@/lib/theme';
+import { formatDuration, formatFullDate } from '@/lib/format';
+import { useUnit } from '@/hooks/useUnit';
+import { darkColors as colors, monoFont } from '@/lib/theme';
 import type { Activity } from '@/lib/types';
 import { RouteShape } from './RouteShape';
 
@@ -48,6 +49,7 @@ function ClassicCard({
   width: number;
   height: number;
 }) {
+  const u = useUnit();
   const routeWidth = width - 56;
   const routeHeight = Math.round(height * 0.42);
 
@@ -72,13 +74,14 @@ function ClassicCard({
           strokeWidth={2.6}
           glow
           showEndpoints
+          endpointFill={colors.bg}
         />
       </View>
 
       <View style={styles.bottom}>
         <View style={styles.distanceLine}>
-          <Text style={styles.distance}>{formatKmDecimal(activity.distanceM)}</Text>
-          <Text style={styles.unit}>km</Text>
+          <Text style={styles.distance}>{u.dist(activity.distanceM)}</Text>
+          <Text style={styles.unit}>{u.label}</Text>
         </View>
 
         <Text style={styles.title}>{activity.title}</Text>
@@ -86,9 +89,9 @@ function ClassicCard({
         <View style={styles.statsRow}>
           <Stat label="THỜI GIAN" value={formatDuration(activity.durationS)} />
           <View style={styles.divider} />
-          <Stat label="PACE" value={`${formatPace(activity.avgPaceS)}/km`} />
+          <Stat label="PACE" value={`${u.pace(activity.avgPaceS)}${u.paceLabel}`} />
           <View style={styles.divider} />
-          <Stat label="ĐỘ CAO" value={`${Math.round(activity.elevGainM)} m`} />
+          <Stat label="ĐỘ CAO" value={`${u.elev(activity.elevGainM)} ${u.elevLabel}`} />
         </View>
       </View>
 
@@ -106,6 +109,7 @@ function MinimalCard({
   width: number;
   height: number;
 }) {
+  const u = useUnit();
   const routeWidth = width - 64;
   const routeHeight = Math.round(height * 0.44);
 
@@ -124,6 +128,7 @@ function MinimalCard({
           strokeWidth={1.8}
           glow
           showEndpoints
+          endpointFill={colors.bg}
         />
       </View>
 
@@ -133,13 +138,13 @@ function MinimalCard({
         </Text>
         <View style={styles.distanceLine}>
           <Text style={[styles.distance, styles.minimalDistance]}>
-            {formatKmDecimal(activity.distanceM)}
+            {u.dist(activity.distanceM)}
           </Text>
-          <Text style={styles.unit}>km</Text>
+          <Text style={styles.unit}>{u.label}</Text>
         </View>
         <Text style={styles.minimalStats}>
-          {formatDuration(activity.durationS)} · {formatPace(activity.avgPaceS)}/km ·{' '}
-          {Math.round(activity.elevGainM)} m
+          {formatDuration(activity.durationS)} · {u.pace(activity.avgPaceS)}{u.paceLabel} ·{' '}
+          {u.elev(activity.elevGainM)} {u.elevLabel}
         </Text>
       </View>
 
@@ -160,6 +165,7 @@ function PosterCard({
   width: number;
   height: number;
 }) {
+  const u = useUnit();
   const routeWidth = width - 56;
   const routeHeight = Math.round(height * 0.38);
 
@@ -182,6 +188,7 @@ function PosterCard({
           color={colors.bg}
           strokeWidth={2.4}
           showEndpoints
+          endpointFill={colors.accent}
         />
       </View>
 
@@ -191,17 +198,17 @@ function PosterCard({
         </Text>
         <View style={styles.distanceLine}>
           <Text style={[styles.distance, styles.posterDistance, styles.posterInk]}>
-            {formatKmDecimal(activity.distanceM)}
+            {u.dist(activity.distanceM)}
           </Text>
-          <Text style={[styles.unit, styles.posterInk]}>km</Text>
+          <Text style={[styles.unit, styles.posterInk]}>{u.label}</Text>
         </View>
 
         <View style={[styles.statsRow, styles.posterStatsRow]}>
           <PosterStat label="THỜI GIAN" value={formatDuration(activity.durationS)} />
           <View style={[styles.divider, styles.posterDivider]} />
-          <PosterStat label="PACE" value={`${formatPace(activity.avgPaceS)}/km`} />
+          <PosterStat label="PACE" value={`${u.pace(activity.avgPaceS)}${u.paceLabel}`} />
           <View style={[styles.divider, styles.posterDivider]} />
-          <PosterStat label="ĐỘ CAO" value={`${Math.round(activity.elevGainM)} m`} />
+          <PosterStat label="ĐỘ CAO" value={`${u.elev(activity.elevGainM)} ${u.elevLabel}`} />
         </View>
       </View>
 
@@ -219,6 +226,7 @@ function NeonCard({
   width: number;
   height: number;
 }) {
+  const u = useUnit();
   const routeWidth = width - 56;
   const routeHeight = Math.round(height * 0.4);
 
@@ -242,6 +250,7 @@ function NeonCard({
           strokeWidth={2.6}
           glow
           showEndpoints
+          endpointFill={colors.bg}
         />
       </View>
 
@@ -251,13 +260,13 @@ function NeonCard({
         </Text>
         <View style={styles.distanceLine}>
           <Text style={[styles.distance, { color: colors.text }]}>
-            {formatKmDecimal(activity.distanceM)}
+            {u.dist(activity.distanceM)}
           </Text>
-          <Text style={[styles.unit, { color: colors.accent }]}>km</Text>
+          <Text style={[styles.unit, { color: colors.accent }]}>{u.label}</Text>
         </View>
         <Text style={styles.minimalStats}>
-          {formatDuration(activity.durationS)} · {formatPace(activity.avgPaceS)}/km ·{' '}
-          {Math.round(activity.elevGainM)} m
+          {formatDuration(activity.durationS)} · {u.pace(activity.avgPaceS)}{u.paceLabel} ·{' '}
+          {u.elev(activity.elevGainM)} {u.elevLabel}
         </Text>
       </View>
     </View>

@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Path, Polyline, Text as SvgText } from 'react-native-svg';
 
-import { colors } from '@/lib/theme';
+import { type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 import type { TrackPoint } from '@/lib/types';
 
 type Props = {
@@ -13,6 +14,8 @@ type Props = {
 const PADDING = 8;
 
 export function ElevationProfile({ route, height = 110 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const [width, setWidth] = useState(0);
 
   const samples = useMemo(() => {
@@ -63,12 +66,12 @@ export function ElevationProfile({ route, height = 110 }: Props) {
     <View onLayout={onLayout} style={{ width: '100%', height }}>
       {width > 0 ? (
         <Svg width={width} height={height}>
-          <Path d={area} fill={colors.accentSoft} />
-          <Polyline points={line} fill="none" stroke={colors.accent} strokeWidth={1.6} />
-          <SvgText x={PADDING} y={PADDING + 8} fontSize={9} fill={colors.textFaint}>
+          <Path d={area} fill={palette.accentSoft} />
+          <Polyline points={line} fill="none" stroke={palette.accent} strokeWidth={1.6} />
+          <SvgText x={PADDING} y={PADDING + 8} fontSize={9} fill={palette.textFaint}>
             {Math.round(max)} m
           </SvgText>
-          <SvgText x={PADDING} y={height - 4} fontSize={9} fill={colors.textFaint}>
+          <SvgText x={PADDING} y={height - 4} fontSize={9} fill={palette.textFaint}>
             {Math.round(min)} m
           </SvgText>
         </Svg>
@@ -77,12 +80,13 @@ export function ElevationProfile({ route, height = 110 }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   empty: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
   },
-  emptyText: { fontSize: 11, color: colors.textFaint },
+  emptyText: { fontSize: 11, color: c.textFaint },
 });

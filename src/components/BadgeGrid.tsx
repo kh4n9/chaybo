@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { Badge } from '@/lib/badges';
-import { colors, radius } from '@/lib/theme';
+import { radius, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 
 type Props = {
   badges: Badge[];
@@ -43,6 +44,8 @@ function formatNumber(value: number): string {
 
 /** Two-column achievement grid; locked badges show their progress. */
 export function BadgeGrid({ badges }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   return (
     <View style={styles.grid}>
       {badges.map((badge) => {
@@ -60,11 +63,11 @@ export function BadgeGrid({ badges }: Props) {
                 <Ionicons
                   name={badge.earned ? icon : 'lock-closed-outline'}
                   size={16}
-                  color={badge.earned ? colors.accent : colors.textFaint}
+                  color={badge.earned ? palette.accent : palette.textFaint}
                 />
               </View>
               {badge.earned ? (
-                <Ionicons name="checkmark-circle" size={15} color={colors.accent} />
+                <Ionicons name="checkmark-circle" size={15} color={palette.accent} />
               ) : null}
             </View>
 
@@ -94,19 +97,20 @@ export function BadgeGrid({ badges }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   card: {
     width: '47.5%',
     flexGrow: 1,
     minHeight: 132,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 12,
   },
-  cardEarned: { borderColor: colors.accentLine, backgroundColor: 'rgba(216,255,62,0.045)' },
+  cardEarned: { borderColor: c.accentLine, backgroundColor: c.accentSoft },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   iconWrap: {
     width: 32,
@@ -114,37 +118,37 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
   },
-  iconWrapEarned: { backgroundColor: colors.accentSoft },
+  iconWrapEarned: { backgroundColor: c.accentSoft },
   title: {
     marginTop: 9,
     fontSize: 13,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.2,
   },
-  titleLocked: { color: colors.textDim },
-  description: { marginTop: 3, fontSize: 10, lineHeight: 14, color: colors.textFaint },
+  titleLocked: { color: c.textDim },
+  description: { marginTop: 3, fontSize: 10, lineHeight: 14, color: c.textFaint },
   earned: {
     marginTop: 8,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
-    color: colors.accent,
+    color: c.accent,
   },
   progressWrap: { marginTop: 8, gap: 5 },
   progressTrack: {
     height: 3,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     overflow: 'hidden',
   },
-  progressFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.textFaint },
+  progressFill: { height: '100%', borderRadius: radius.pill, backgroundColor: c.textFaint },
   progressText: {
     fontSize: 9,
-    color: colors.textFaint,
+    color: c.textFaint,
     fontVariant: ['tabular-nums'],
   },
 });

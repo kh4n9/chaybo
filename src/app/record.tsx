@@ -13,9 +13,11 @@ import { Button, Eyebrow, IconButton } from '@/components/ui';
 import { saveActivity } from '@/db/activities';
 import { useRecording } from '@/hooks/useRecording';
 import { useSettings } from '@/hooks/useSettings';
-import { autoTitle, formatDuration, formatKmDecimal, formatPace } from '@/lib/format';
+import { autoTitle, formatDuration } from '@/lib/format';
+import { useUnit } from '@/hooks/useUnit';
 import { fetchWeather, formatWeather } from '@/lib/weather';
-import { colors, monoFont, radius } from '@/lib/theme';
+import { monoFont, radius, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 
 const DEFAULT_REGION = {
   latitude: 21.0287,
@@ -25,6 +27,9 @@ const DEFAULT_REGION = {
 };
 
 export default function RecordScreen() {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const router = useRouter();
   const db = useSQLiteContext();
   const { settings } = useSettings();
@@ -208,7 +213,7 @@ export default function RecordScreen() {
         {coordinates.length > 1 ? (
           <Polyline
             coordinates={coordinates}
-            strokeColor={colors.accent}
+            strokeColor={palette.accent}
             strokeWidth={4}
             lineCap="round"
             lineJoin="round"
@@ -233,8 +238,10 @@ export default function RecordScreen() {
             {isActive
               ? rec.points.length === 0
                 ? 'Đang tìm GPS...'
-                : 'GPS ổn định'
-              : 'Giữ app mở trong khi chạy'}
+                : rec.background
+                  ? 'GPS nền đang bật'
+                  : 'GPS ổn định'
+              : 'Chạm để bắt đầu ghi'}
           </Text>
         </View>
 
@@ -244,8 +251,8 @@ export default function RecordScreen() {
           <Eyebrow>{isActive ? 'Quãng đường' : 'Sẵn sàng'}</Eyebrow>
 
           <View style={styles.distanceLine}>
-            <Text style={styles.distance}>{formatKmDecimal(rec.distanceM)}</Text>
-            <Text style={styles.distanceUnit}>km</Text>
+            <Text style={styles.distance}>{u.dist(rec.distanceM)}</Text>
+            <Text style={styles.distanceUnit}>{u.label}</Text>
           </View>
 
           <View style={styles.metricsRow}>
@@ -253,11 +260,14 @@ export default function RecordScreen() {
             <View style={styles.metricDivider} />
             <Metric
               label="Pace"
-              value={currentPace ? `${formatPace(currentPace)}` : `--'--"`}
-              suffix="/km"
+              value={currentPace ? `${u.pace(currentPace)}` : `--'--"`}
+              suffix={u.paceLabel}
             />
             <View style={styles.metricDivider} />
-            <Metric label="Km" value={String(Math.floor(rec.distanceM / 1000))} />
+            <Metric
+              label={u.label === 'mi' ? 'Dặm' : 'Km'}
+              value={String(Math.floor(u.toUnit(rec.distanceM)))}
+            />
           </View>
 
           {!isActive ? (
@@ -278,7 +288,7 @@ export default function RecordScreen() {
                 <Ionicons
                   name={rec.status === 'paused' ? 'play' : 'pause'}
                   size={26}
-                  color={colors.text}
+                  color={palette.text}
                 />
               </Pressable>
 
@@ -290,10 +300,10 @@ export default function RecordScreen() {
                 accessibilityLabel="Kết thúc buổi chạy"
               >
                 {saving ? (
-                  <ActivityIndicator color={colors.bg} />
+                  <ActivityIndicator color={palette.bg} />
                 ) : (
                   <>
-                    <Ionicons name="stop" size={20} color={colors.bg} />
+                    <Ionicons name="stop" size={20} color={palette.bg} />
                     <Text style={styles.stopLabel}>Kết thúc</Text>
                   </>
                 )}
@@ -322,6 +332,8 @@ export default function RecordScreen() {
 }
 
 function StatusPill({ status, autoPaused }: { status: 'idle' | 'recording' | 'paused'; autoPaused?: boolean }) {
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const label =
     status === 'idle'
       ? 'Chưa ghi'
@@ -335,12 +347,13 @@ function StatusPill({ status, autoPaused }: { status: 'idle' | 'recording' | 'pa
   return (
     <View style={[styles.pill, active && styles.pillActive]}>
       <View style={[styles.pillDot, active && styles.pillDotActive]} />
-      <Text style={[styles.pillText, active && { color: colors.accent }]}>{label}</Text>
+      <Text style={[styles.pillText, active && { color: palette.accent }]}>{label}</Text>
     </View>
   );
 }
 
 function Metric({ label, value, suffix }: { label: string; value: string; suffix?: string }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.metric}>
       <Text style={styles.metricLabel}>{label.toUpperCase()}</Text>
@@ -366,8 +379,9 @@ function haversineMeters(
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.bg },
   safe: { flex: 1, paddingHorizontal: 20 },
   header: {
     flexDirection: 'row',
@@ -378,7 +392,7 @@ const styles = StyleSheet.create({
   headerHint: {
     flex: 1,
     fontSize: 11,
-    color: colors.textFaint,
+    color: c.textFaint,
     letterSpacing: 0.2,
     textAlign: 'right',
   },
@@ -389,19 +403,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(20,21,24,0.85)',
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
-  pillActive: { borderColor: colors.accentLine, backgroundColor: 'rgba(216,255,62,0.10)' },
-  pillDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.textFaint },
-  pillDotActive: { backgroundColor: colors.accent },
+  pillActive: { borderColor: c.accentLine, backgroundColor: c.accentSoft },
+  pillDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: c.textFaint },
+  pillDotActive: { backgroundColor: c.accent },
   pillText: {
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.1,
     textTransform: 'uppercase',
-    color: colors.textDim,
+    color: c.textDim,
   },
   spacer: { flex: 1 },
   panel: { paddingBottom: 8 },
@@ -411,39 +425,39 @@ const styles = StyleSheet.create({
     lineHeight: 88,
     fontWeight: '800',
     letterSpacing: -4.5,
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
-  distanceUnit: { fontSize: 20, fontWeight: '700', color: colors.accent },
+  distanceUnit: { fontSize: 20, fontWeight: '700', color: c.accent },
   metricsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 10,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
   },
   metric: { flex: 1 },
   metricLabel: {
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1.2,
-    color: colors.textFaint,
+    color: c.textFaint,
     marginBottom: 5,
   },
   metricValueLine: { flexDirection: 'row', alignItems: 'baseline', gap: 3 },
   metricValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
     letterSpacing: -0.5,
   },
-  metricSuffix: { fontSize: 10, color: colors.textFaint },
+  metricSuffix: { fontSize: 10, color: c.textFaint },
   metricDivider: {
     width: StyleSheet.hairlineWidth,
     height: 28,
-    backgroundColor: colors.border,
+    backgroundColor: c.border,
     marginHorizontal: 12,
   },
   startButton: { marginTop: 24, paddingVertical: 18 },
@@ -457,9 +471,9 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong,
+    borderColor: c.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -467,7 +481,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 64,
     borderRadius: radius.pill,
-    backgroundColor: colors.accent,
+    backgroundColor: c.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -476,7 +490,7 @@ const styles = StyleSheet.create({
   stopLabel: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.bg,
+    color: c.bg,
     letterSpacing: 0.3,
     fontFamily: monoFont,
   },
@@ -491,18 +505,18 @@ const styles = StyleSheet.create({
   countdownNumber: {
     fontSize: 140,
     fontWeight: '800',
-    color: colors.accent,
+    color: c.accent,
     fontVariant: ['tabular-nums'],
     letterSpacing: -6,
   },
-  countdownHint: { fontSize: 14, color: colors.textDim, letterSpacing: 0.4 },
+  countdownHint: { fontSize: 14, color: c.textDim, letterSpacing: 0.4 },
   countdownCancel: {
     marginTop: 24,
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: colors.borderStrong,
+    borderColor: c.borderStrong,
   },
-  countdownCancelText: { fontSize: 13, fontWeight: '600', color: colors.textDim },
+  countdownCancelText: { fontSize: 13, fontWeight: '600', color: c.textDim },
 });

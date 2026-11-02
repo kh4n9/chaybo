@@ -3,7 +3,8 @@ import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { buildAreaHeatmap } from '@/lib/heatmap';
-import { colors, radius } from '@/lib/theme';
+import { radius, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 import type { ActivitySummary } from '@/lib/types';
 
 type Props = {
@@ -18,6 +19,8 @@ const PADDING = 10;
  * grid painted behind the lines. Purely local — no map tiles or network.
  */
 export function AreaHeatmap({ activities, height = 220 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const [width, setWidth] = useState(0);
 
   const onLayout = (event: LayoutChangeEvent) => {
@@ -79,7 +82,7 @@ export function AreaHeatmap({ activities, height = 220 }: Props) {
               y={cell.y}
               width={cell.w}
               height={cell.h}
-              fill={colors.accent}
+              fill={palette.accent}
               fillOpacity={cell.alpha}
               rx={2}
             />
@@ -88,7 +91,7 @@ export function AreaHeatmap({ activities, height = 220 }: Props) {
             <Path
               key={line.id}
               d={line.d}
-              stroke={colors.accent}
+              stroke={palette.accent}
               strokeOpacity={0.4}
               strokeWidth={1.2}
               fill="none"
@@ -107,15 +110,16 @@ export function AreaHeatmap({ activities, height = 220 }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   root: {
     width: '100%',
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     overflow: 'hidden',
   },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
-  emptyText: { fontSize: 12, color: colors.textFaint, textAlign: 'center' },
+  emptyText: { fontSize: 12, color: c.textFaint, textAlign: 'center' },
 });

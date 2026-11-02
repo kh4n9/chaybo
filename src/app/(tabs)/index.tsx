@@ -20,18 +20,12 @@ import { seedSampleData } from '@/db/sample';
 import { useActivities } from '@/hooks/useActivities';
 import { useSettings } from '@/hooks/useSettings';
 import type { ActivitySummary, Feeling, RunType } from '@/lib/types';
-import {
-  formatKmDecimal,
-  formatMonthLabel,
-  formatPace,
-  normalizeText,
-  startOfMonth,
-  startOfWeek,
-  startOfYear,
-} from '@/lib/format';
+import { formatMonthLabel, normalizeText, startOfMonth, startOfWeek, startOfYear } from '@/lib/format';
+import { useUnit } from '@/hooks/useUnit';
 import { activitiesBetween, EMPTY_TOTALS, totalsOf } from '@/lib/stats';
 import { RUN_TYPES } from '@/lib/runType';
-import { colors, radius } from '@/lib/theme';
+import { radius, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 
 type RangeKey = 'all' | 'week' | 'month' | 'year';
 
@@ -54,6 +48,9 @@ const FEELING_FILTERS: { value: Feeling | 'all'; label: string }[] = [
 ];
 
 export default function HistoryScreen() {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const router = useRouter();
   const db = useSQLiteContext();
   const { activities, loading, refresh, fetchedAt } = useActivities();
@@ -212,14 +209,14 @@ export default function HistoryScreen() {
           <IconButton
             icon={searchOpen ? 'close-outline' : 'search-outline'}
             onPress={toggleSearch}
-            color={searchOpen ? colors.accent : colors.textDim}
+            color={searchOpen ? palette.accent : palette.textDim}
             size={19}
             accessibilityLabel={searchOpen ? 'Đóng tìm kiếm' : 'Tìm kiếm buổi chạy'}
           />
           <IconButton
             icon="settings-outline"
             onPress={() => router.push('/settings')}
-            color={colors.textDim}
+            color={palette.textDim}
             size={19}
             accessibilityLabel="Cài đặt"
           />
@@ -228,18 +225,18 @@ export default function HistoryScreen() {
 
       {searchOpen ? (
         <View style={styles.searchWrap}>
-          <Ionicons name="search" size={15} color={colors.textFaint} />
+          <Ionicons name="search" size={15} color={palette.textFaint} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="Tìm theo tên hoặc ghi chú"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={palette.textFaint}
             style={styles.searchInput}
             autoFocus
             autoCorrect={false}
             returnKeyType="search"
             clearButtonMode="while-editing"
-            selectionColor={colors.accent}
+            selectionColor={palette.accent}
           />
         </View>
       ) : null}
@@ -254,7 +251,7 @@ export default function HistoryScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.textDim}
+            tintColor={palette.textDim}
           />
         }
         ListHeaderComponent={
@@ -262,11 +259,11 @@ export default function HistoryScreen() {
             <View style={styles.hero}>
               <Eyebrow>Tuần này</Eyebrow>
               <View style={styles.heroNumberLine}>
-                <Text style={styles.heroNumber}>{formatKmDecimal(week.distanceM, 1)}</Text>
-                <Text style={styles.heroUnit}>km</Text>
+                <Text style={styles.heroNumber}>{u.dist(week.distanceM, 1)}</Text>
+                <Text style={styles.heroUnit}>{u.label}</Text>
               </View>
               <Text style={styles.heroSub}>
-                {week.count} buổi{weekPace ? ` · ${formatPace(weekPace)}/km` : ''}
+                {week.count} buổi{weekPace ? ` · ${u.pace(weekPace)}${u.paceLabel}` : ''}
               </Text>
 
               {goalM > 0 ? (
@@ -275,10 +272,10 @@ export default function HistoryScreen() {
                     <View style={[styles.goalFill, { width: `${goalPct * 100}%` }]} />
                   </View>
                   <View style={styles.goalRow}>
-                    <Text style={[styles.goalText, goalReached && { color: colors.accent }]}>
+                    <Text style={[styles.goalText, goalReached && { color: palette.accent }]}>
                       {goalReached
                         ? 'Đã đạt mục tiêu tuần'
-                        : `Mục tiêu ${settings.weeklyGoalKm} km`}
+                        : `Mục tiêu ${u.dist(settings.weeklyGoalKm * 1000, 1)} ${u.label}`}
                     </Text>
                     <Text style={styles.goalPct}>{Math.round(goalPct * 100)}%</Text>
                   </View>
@@ -327,14 +324,14 @@ export default function HistoryScreen() {
               accessibilityState={{ expanded: filtersOpen }}
               accessibilityLabel="Bộ lọc nâng cao"
             >
-              <Ionicons name="options-outline" size={14} color={colors.textDim} />
+              <Ionicons name="options-outline" size={14} color={palette.textDim} />
               <Text style={styles.advancedToggleText}>
                 Bộ lọc nâng cao{advancedCount > 0 ? ` · ${advancedCount}` : ''}
               </Text>
               <Ionicons
                 name={filtersOpen ? 'chevron-up' : 'chevron-down'}
                 size={13}
-                color={colors.textFaint}
+                color={palette.textFaint}
               />
             </Pressable>
 
@@ -357,7 +354,7 @@ export default function HistoryScreen() {
                         accessibilityState={{ selected: active }}
                       >
                         <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                          {km === 0 ? 'Mọi cự ly' : `≥ ${km} km`}
+                          {km === 0 ? 'Mọi cự ly' : `≥ ${u.dist(km * 1000, 0)} ${u.label}`}
                         </Text>
                       </Pressable>
                     );
@@ -459,12 +456,12 @@ export default function HistoryScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Nhắc sao lưu dữ liệu"
               >
-                <Ionicons name="cloud-upload-outline" size={16} color={colors.accent} />
+                <Ionicons name="cloud-upload-outline" size={16} color={palette.accent} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.backupTitle}>Nên sao lưu dữ liệu</Text>
                   <Text style={styles.backupHint}>Lần cuối: {lastBackupLabel}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={14} color={colors.textFaint} />
+                <Ionicons name="chevron-forward" size={14} color={palette.textFaint} />
               </Pressable>
             ) : null}
 
@@ -484,7 +481,7 @@ export default function HistoryScreen() {
               <View style={styles.monthHeader}>
                 <Text style={styles.monthHeaderLabel}>{item.label}</Text>
                 <Text style={styles.monthHeaderMeta}>
-                  {item.count} buổi · {formatKmDecimal(item.distanceM, 1)} km
+                  {item.count} buổi · {u.dist(item.distanceM, 1)} {u.label}
                 </Text>
               </View>
             );
@@ -501,7 +498,7 @@ export default function HistoryScreen() {
         ListEmptyComponent={
           loading ? (
             <View style={styles.empty}>
-              <ActivityIndicator color={colors.accent} />
+              <ActivityIndicator color={palette.accent} />
             </View>
           ) : activities.length > 0 ? (
             <View style={styles.empty}>
@@ -543,8 +540,9 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -557,14 +555,14 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: -1,
-    color: colors.text,
+    color: c.text,
   },
-  brandDot: { color: colors.accent },
+  brandDot: { color: c.accent },
   brandRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   brandDate: {
     fontSize: 11,
     letterSpacing: 1.2,
-    color: colors.textFaint,
+    color: c.textFaint,
     fontVariant: ['tabular-nums'],
   },
   searchWrap: {
@@ -576,14 +574,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 40,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong,
+    borderColor: c.borderStrong,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: colors.text,
+    color: c.text,
     paddingVertical: 0,
   },
   content: { paddingHorizontal: 20, paddingBottom: 28 },
@@ -594,25 +592,25 @@ const styles = StyleSheet.create({
     lineHeight: 74,
     fontWeight: '800',
     letterSpacing: -3.5,
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
-  heroUnit: { fontSize: 18, fontWeight: '700', color: colors.accent, letterSpacing: 0.4 },
-  heroSub: { fontSize: 13, color: colors.textDim, marginTop: 2 },
+  heroUnit: { fontSize: 18, fontWeight: '700', color: c.accent, letterSpacing: 0.4 },
+  heroSub: { fontSize: 13, color: c.textDim, marginTop: 2 },
   goal: { marginTop: 16, gap: 8 },
   goalTrack: {
     height: 5,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     overflow: 'hidden',
   },
-  goalFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.accent },
+  goalFill: { height: '100%', borderRadius: radius.pill, backgroundColor: c.accent },
   goalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  goalText: { fontSize: 11, color: colors.textDim, letterSpacing: 0.2 },
+  goalText: { fontSize: 11, color: c.textDim, letterSpacing: 0.2 },
   goalPct: {
     fontSize: 11,
     fontWeight: '700',
-    color: colors.accent,
+    color: c.accent,
     fontVariant: ['tabular-nums'],
   },
   filters: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 14 },
@@ -620,15 +618,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
-  chipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentLine },
-  chipText: { fontSize: 11, fontWeight: '600', color: colors.textDim },
-  chipTextActive: { color: colors.accent },
+  chipActive: { backgroundColor: c.accentSoft, borderColor: c.accentLine },
+  chipText: { fontSize: 11, fontWeight: '600', color: c.textDim },
+  chipTextActive: { color: c.accent },
   clear: { marginLeft: 'auto', paddingVertical: 6, paddingLeft: 6 },
-  clearText: { fontSize: 11, fontWeight: '600', color: colors.textFaint },
+  clearText: { fontSize: 11, fontWeight: '600', color: c.textFaint },
   advancedToggle: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -637,17 +635,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     marginBottom: 12,
   },
-  advancedToggleText: { fontSize: 10, fontWeight: '600', color: colors.textDim },
+  advancedToggleText: { fontSize: 10, fontWeight: '600', color: c.textDim },
   advancedPanel: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 12,
     marginBottom: 14,
     gap: 8,
@@ -657,7 +655,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
     textTransform: 'uppercase',
-    color: colors.textFaint,
+    color: c.textFaint,
   },
   advancedRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   monthHeader: {
@@ -667,16 +665,16 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     justifyContent: 'space-between',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
     marginTop: 6,
   },
   monthHeaderLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.2,
   },
-  monthHeaderMeta: { fontSize: 10, color: colors.textFaint },
+  monthHeaderMeta: { fontSize: 10, color: c.textFaint },
   sortRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -688,20 +686,20 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1.1,
-    color: colors.textFaint,
+    color: c.textFaint,
     marginRight: 4,
   },
   sortChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
-  sortChipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentLine },
-  sortChipText: { fontSize: 10, fontWeight: '600', color: colors.textDim },
-  sortChipTextActive: { color: colors.accent },
+  sortChipActive: { backgroundColor: c.accentSoft, borderColor: c.accentLine },
+  sortChipText: { fontSize: 10, fontWeight: '600', color: c.textDim },
+  sortChipTextActive: { color: c.accent },
   backupBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -709,12 +707,12 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.accentLine,
+    borderColor: c.accentLine,
   },
-  backupTitle: { fontSize: 12, fontWeight: '700', color: colors.text },
-  backupHint: { fontSize: 10, color: colors.textFaint, marginTop: 2 },
+  backupTitle: { fontSize: 12, fontWeight: '700', color: c.text },
+  backupHint: { fontSize: 10, color: c.textFaint, marginTop: 2 },
   sectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -722,26 +720,26 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 4,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
     marginTop: 4,
   },
   count: {
     fontSize: 11,
     fontWeight: '700',
-    color: colors.textFaint,
+    color: c.textFaint,
     fontVariant: ['tabular-nums'],
   },
   empty: { paddingTop: 40, alignItems: 'flex-start' },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.4,
   },
   emptyBody: {
     fontSize: 14,
     lineHeight: 21,
-    color: colors.textDim,
+    color: c.textDim,
     marginTop: 8,
     maxWidth: 300,
   },

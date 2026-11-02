@@ -1,7 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { formatDuration, formatPace } from '@/lib/format';
-import { colors } from '@/lib/theme';
+import { formatDuration } from '@/lib/format';
+import { useUnit } from '@/hooks/useUnit';
+import { type Palette } from '@/lib/theme';
+import { useThemedStyles } from '@/hooks/useTheme';
 import type { Split } from '@/lib/types';
 
 type Props = {
@@ -9,8 +11,11 @@ type Props = {
 };
 
 export function SplitsList({ splits }: Props) {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
+
   if (splits.length === 0) {
-    return <Text style={styles.empty}>Chưa đủ dữ liệu để chia km.</Text>;
+    return <Text style={styles.empty}>Chưa đủ dữ liệu để chia {u.label}.</Text>;
   }
 
   const paces = splits.map((s) => s.paceSPerKm);
@@ -21,7 +26,7 @@ export function SplitsList({ splits }: Props) {
   return (
     <View>
       <View style={styles.headerRow}>
-        <Text style={[styles.headerCell, styles.kmCell]}>KM</Text>
+        <Text style={[styles.headerCell, styles.kmCell]}>{u.label.toUpperCase()}</Text>
         <Text style={[styles.headerCell, styles.barCell]}>NHỊP ĐỘ</Text>
         <Text style={[styles.headerCell, styles.timeCell]}>THỜI GIAN</Text>
         <Text style={[styles.headerCell, styles.paceCell]}>PACE</Text>
@@ -50,7 +55,7 @@ export function SplitsList({ splits }: Props) {
 
             <Text style={[styles.cell, styles.timeCell]}>{formatDuration(split.durationS)}</Text>
             <Text style={[styles.cell, styles.paceCell, isFastest && styles.fastest]}>
-              {formatPace(split.paceSPerKm)}
+              {u.pace(split.paceSPerKm)}
             </Text>
           </View>
         );
@@ -59,46 +64,47 @@ export function SplitsList({ splits }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: c.border,
     gap: 10,
   },
   headerCell: {
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1.1,
-    color: colors.textFaint,
+    color: c.textFaint,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 11,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(36,38,43,0.6)',
+    borderBottomColor: c.border,
     gap: 10,
   },
   cell: {
     fontSize: 13,
-    color: colors.textDim,
+    color: c.textDim,
     fontVariant: ['tabular-nums'],
   },
   kmCell: { width: 26, textAlign: 'left' },
   barCell: { flex: 1 },
   timeCell: { width: 52, textAlign: 'right' },
-  paceCell: { width: 52, textAlign: 'right', fontWeight: '600', color: colors.text },
+  paceCell: { width: 52, textAlign: 'right', fontWeight: '600', color: c.text },
   track: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     overflow: 'hidden',
   },
-  fill: { height: '100%', borderRadius: 3, backgroundColor: colors.accentLine },
-  fillFastest: { backgroundColor: colors.accent },
-  fastest: { color: colors.accent },
-  empty: { color: colors.textFaint, fontSize: 13, paddingVertical: 12 },
+  fill: { height: '100%', borderRadius: 3, backgroundColor: c.accentLine },
+  fillFastest: { backgroundColor: c.accent },
+  fastest: { color: c.accent },
+  empty: { color: c.textFaint, fontSize: 13, paddingVertical: 12 },
 });

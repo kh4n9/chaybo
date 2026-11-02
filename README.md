@@ -68,7 +68,7 @@ Nút bắt đầu chạy là nút tròn màu vàng chanh ở giữa thanh tab. M
 
 - **Expo SDK 58** / React Native 0.88 / React 19 / TypeScript
 - **Expo Router** (routes trong `src/app/`)
-- **expo-location** — `watchPositionAsync` (chỉ foreground)
+- **expo-location** — `watchPositionAsync` (foreground) + `startLocationUpdatesAsync` (nền, chỉ dev build)
 - **expo-sqlite** — lưu hoạt động, lộ trình, splits, cài đặt
 - **expo-file-system + expo-sharing** — tạo tệp `.gpx`/`.json` và mở share sheet
 - **expo-document-picker** — chọn tệp `.json` để khôi phục và tệp `.gpx` để nhập
@@ -160,16 +160,16 @@ SQLite, file `chaybo.db` trong sandbox của app. **Xoá app là mất toàn b�
 
 ## Giới hạn đã biết của bản MVP
 
-- **GPS chỉ chạy khi app ở foreground.** Tắt màn hình hoặc chuyển sang app khác thì GPS dừng ghi. Ghi nền cần `expo-task-manager` + `Location.startLocationUpdatesAsync` và một **development build** (không chạy được trong Expo Go).
-- **Không đo nhịp tim** vì chưa có cảm biến; biểu đồ pace thay cho biểu đồ HR.
+- **Ghi nền (background GPS)** chỉ chạy trong **development build** (không phải Expo Go). Trong Expo Go, app phải ở foreground. Khi build dev, app tự xin quyền “Luôn cho phép” và ghi ngay cả khi tắt màn hình (có thông báo foreground service trên Android).
+- **Không đo nhịp tim** vì chưa có cảm biến; biểu đồ pace thay cho biểu đồ HR. HealthKit (nhịp tim, VO2max) cần native module + dev build — chưa tích hợp.
 - **Calo là ước lượng** theo công thức ~1 kcal/kg/km với cân nặng bạn nhập trong Cài đặt (mặc định 62 kg). Buổi chạy cũ giữ nguyên calo đã lưu.
 - **Best effort cần GPS đủ dày.** Cự ly càng ngắn (400 m) càng dễ lệch nếu tín hiệu thưa; kỷ lục được tính lại mỗi lần mở màn hình Kỷ lục.
 - **Huy hiệu và chuỗi ngày là offline**, không có giải thưởng hay so sánh với người khác.
 - **Không có feed, kết bạn hay leaderboard** — những tính năng này cần backend nên nằm ngoài phạm vi bản local.
 - **Đoạn chạy quen là phiên bản cá nhân**, nhóm theo điểm đầu/cuối chứ không phải segment do cộng đồng tạo; thời gian trên đoạn là ước tính từ pace trung bình của cả buổi.
 - **VO2max là ước tính** từ một buổi chạy, không phải phép đo trong phòng thí nghiệm.
-- **HealthKit, Live Activity và widget** cần native module + development build nên chưa có trong bản Expo Go này. Ghi nền cũng vậy (xem bullet đầu tiên).
-- **Giao diện sáng và đơn vị dặm** đã có trường cài đặt nhưng chưa áp dụng toàn app; đổi đơn vị hiện chỉ ảnh hưởng một số nhãn, còn giao diện vẫn là theme tối cố định.
+- **Live Activity và widget** (iOS) cần `expo-widgets` + dev build; chưa tích hợp trong bản hiện tại. Ghi nền đã sẵn sàng cho dev build.
+- **Giao diện sáng và đơn vị dặm (km/mi)** đã áp dụng toàn app (Cài đặt → Giao diện & đơn vị). Mục tiêu tuần/tháng/năm lưu theo km và tự quy đổi ở UI.
 - Tiếng Việt là ngôn ngữ duy nhất.
 
 ## Build bản cài thật trên iOS
@@ -178,13 +178,41 @@ Expo Go chỉ để chạy thử. Muốn cài app lên máy như app bình thư�
 
 ```bash
 npx eas-cli@latest login
-npx eas-cli@latest build:configure
+npx eas-cli@latest build:configure   # tạo eas.json nếu chưa có
 npx eas-cli@latest build --platform ios --profile preview
 ```
 
 - Cần **Apple ID**. Với **thiết bị thật** và TestFlight/App Store, cần **Apple Developer Program (99 USD/năm)**.
 - Cấu hình bundle id hiện tại: `com.chaybo.app` (sửa trong `app.json` nếu muốn tên khác).
 - Sau khi build xong, EAS gửi link cài đặt; mở bằng iPhone và làm theo hướng dẫn.
+
+### Development build (để dùng GPS nền)
+
+Bản `preview`/`production` không có dev tools và vẫn có thể ghi nền nếu app đã được cấp quyền “Always”. Nhưng để phát triển và thử GPS nền, dùng **development build**:
+
+```bash
+cd chaybo-app
+npx expo install expo-dev-client expo-task-manager   # đã có trong repo
+npx eas-cli@latest build --platform ios --profile development            # thiết bị thật
+npx eas-cli@latest build --platform ios --profile development-simulator  # iOS Simulator
+```
+
+Trong dev build, màn hình Ghi sẽ tự xin quyền “Luôn cho phép”; nếu được cấp, app tiếp tục ghi khi tắt màn hình (iOS hiện thanh xanh “chaybo đang dùng vị trí của bạn”; Android hiện thông báo foreground service). Nếu bị từ chối, app vẫn ghi được khi ở foreground.
+
+**Lưu ý Windows:** không build iOS cục bộ được (cần Xcode/macOS). Chỉ dùng EAS cloud. Android có thể build cục bộ bằng `npx expo run:android` nếu cài Android Studio.
+
+### HealthKit, Live Activity, widget (chưa tích hợp)
+
+- **HealthKit** (nhịp tim, VO2max từ Apple Health): không có module chính thức trong Expo SDK 58. Cần thư viện bên thứ ba (ví dụ `@kingstinct/react-native-healthkit`) + dev build + entitlement `com.apple.developer.healthkit` trong app config. Chưa tích hợp; để làm sau.
+- **Live Activity** (Dynamic Island / Lock Screen): dùng `expo-widgets` (`createLiveActivity`), chỉ iOS, dev build, **không** thêm entry vào `widgets[]`.
+- **Widget màn hình chính**: dùng `expo-widgets` (`createWidget`), iOS + Android, dev build, cần entry trong `widgets[]` của app config và file widget đánh dấu `'widget'`.
+
+Cài khi cần:
+
+```bash
+npx expo install expo-widgets
+# sau đó thêm plugin + widgets[] vào app.json, rồi build lại dev build
+```
 
 ## Lệnh hữu ích
 
@@ -201,11 +229,11 @@ npx expo install <pkg>  # cài thư viện đúng version cho SDK 58
 
 ## Hướng phát triển tiếp
 
-1. **Ghi nền** — `expo-task-manager` + background location, kèm dev build và quyền “Always”. Đây là việc lớn tiếp theo.
+1. **Ghi nền** — ✅ đã có code (`expo-task-manager` + background location) và cấu hình dev build; cần build dev để thử trên máy thật.
 2. **Đồng bộ & xã hội** — backend + feed + follow, segment, leaderboard (đúng hướng Strava).
-3. **Tuỳ chỉnh thêm** — áp dụng đơn vị dặm/km toàn app, giọng đọc pace mỗi km, nhắc nghỉ, thông báo buổi tập theo kế hoạch.
+3. **Tuỳ chỉnh thêm** — giọng đọc pace mỗi km, nhắc nghỉ, thông báo buổi tập theo kế hoạch.
 4. **Ảnh đính kèm** — ghi chú và cảm nhận đã có; bước tiếp theo là thêm ảnh chụp vào buổi chạy.
-5. **Dev build** — chuyển các phần cần native sang development build: GPS nền, HealthKit, Live Activity, widget và thông báo cục bộ cho kế hoạch tập.
+5. **Dev build** — chuyển các phần cần native sang development build: HealthKit, Live Activity, widget và thông báo cục bộ cho kế hoạch tập. GPS nền đã sẵn sàng.
 
 ---
 

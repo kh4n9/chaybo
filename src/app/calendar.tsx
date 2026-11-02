@@ -14,16 +14,15 @@ import { ActivityRow } from '@/components/ActivityRow';
 import { Eyebrow, IconButton } from '@/components/ui';
 import { useActivities } from '@/hooks/useActivities';
 import { monthWeeks, shiftMonth } from '@/lib/calendar';
-import {
-  formatFullDate,
-  formatKmDecimal,
-  formatMonthLabel,
-  startOfDay,
-  startOfMonth,
-} from '@/lib/format';
-import { colors, radius } from '@/lib/theme';
+import { formatFullDate, formatMonthLabel, startOfDay, startOfMonth } from '@/lib/format';
+import { useUnit } from '@/hooks/useUnit';
+import { radius, withAlpha, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 
 export default function CalendarScreen() {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const router = useRouter();
   const { activities, fetchedAt } = useActivities();
   const now = fetchedAt ?? 0;
@@ -76,12 +75,12 @@ export default function CalendarScreen() {
             accessibilityRole="button"
             accessibilityLabel="Tháng trước"
           >
-            <Ionicons name="chevron-back" size={18} color={colors.text} />
+            <Ionicons name="chevron-back" size={18} color={palette.text} />
           </Pressable>
           <View style={styles.monthInfo}>
             <Text style={styles.monthLabel}>{formatMonthLabel(currentMonth)}</Text>
             <Text style={styles.monthMeta}>
-              {monthRuns} buổi · {formatKmDecimal(monthDistance, 1)} km
+              {monthRuns} buổi · {u.dist(monthDistance, 1)} {u.label}
             </Text>
           </View>
           <Pressable
@@ -98,7 +97,7 @@ export default function CalendarScreen() {
             accessibilityRole="button"
             accessibilityLabel="Tháng sau"
           >
-            <Ionicons name="chevron-forward" size={18} color={colors.text} />
+            <Ionicons name="chevron-forward" size={18} color={palette.text} />
           </Pressable>
         </View>
 
@@ -120,8 +119,8 @@ export default function CalendarScreen() {
                 day.future || !day.inMonth
                   ? 'transparent'
                   : day.count > 0
-                    ? `rgba(216, 255, 62, ${0.18 + intensity * 0.72})`
-                    : colors.surfaceAlt;
+                    ? withAlpha(palette.accentFill, 0.18 + intensity * 0.72)
+                    : palette.surfaceAlt;
               return (
                 <Pressable
                   key={day.dayStart}
@@ -161,11 +160,11 @@ export default function CalendarScreen() {
 
         <View style={styles.legend}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.surfaceAlt }]} />
+            <View style={[styles.legendDot, { backgroundColor: palette.surfaceAlt }]} />
             <Text style={styles.legendText}>Không chạy</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.accent }]} />
+            <View style={[styles.legendDot, { backgroundColor: palette.accent }]} />
             <Text style={styles.legendText}>Có buổi chạy</Text>
           </View>
         </View>
@@ -195,8 +194,9 @@ export default function CalendarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.2,
   },
   headerSpacer: { width: 36 },
@@ -223,15 +223,15 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   monthInfo: { alignItems: 'center', gap: 2 },
-  monthLabel: { fontSize: 16, fontWeight: '700', color: colors.text, letterSpacing: -0.3 },
-  monthMeta: { fontSize: 11, color: colors.textFaint },
+  monthLabel: { fontSize: 16, fontWeight: '700', color: c.text, letterSpacing: -0.3 },
+  monthMeta: { fontSize: 11, color: c.textFaint },
   weekdayHeader: {
     flexDirection: 'row',
     marginBottom: 6,
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 10,
     fontWeight: '700',
-    color: colors.textFaint,
+    color: c.textFaint,
     letterSpacing: 0.6,
   },
   weekRow: { flexDirection: 'row', gap: 6, marginBottom: 6 },
@@ -255,26 +255,26 @@ const styles = StyleSheet.create({
   },
   dayCellSelected: {
     borderWidth: 1.5,
-    borderColor: colors.accent,
+    borderColor: c.accent,
   },
   dayCellToday: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.accentLine,
+    borderColor: c.accentLine,
   },
-  dayNumber: { fontSize: 12, fontWeight: '600', color: colors.textDim },
-  dayNumberMuted: { color: colors.textFaint },
-  dayNumberActive: { color: colors.text },
+  dayNumber: { fontSize: 12, fontWeight: '600', color: c.textDim },
+  dayNumberMuted: { color: c.textFaint },
+  dayNumberActive: { color: c.text },
   dayDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.accent,
+    backgroundColor: c.accent,
   },
   legend: { flexDirection: 'row', gap: 16, marginTop: 6, marginBottom: 16 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 10, height: 10, borderRadius: 3 },
-  legendText: { fontSize: 10, color: colors.textFaint },
+  legendText: { fontSize: 10, color: c.textFaint },
   selectedSection: { marginTop: 16, gap: 4 },
-  emptyDay: { fontSize: 12, color: colors.textFaint, marginTop: 10 },
-  hint: { fontSize: 12, color: colors.textFaint, marginTop: 16, textAlign: 'center' },
+  emptyDay: { fontSize: 12, color: c.textFaint, marginTop: 10 },
+  hint: { fontSize: 12, color: c.textFaint, marginTop: 16, textAlign: 'center' },
 });

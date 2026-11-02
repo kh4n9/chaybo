@@ -27,9 +27,12 @@ import {
   type PainArea,
   type RecoveryLog,
 } from '@/lib/recovery';
-import { colors, radius } from '@/lib/theme';
+import { radius, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 
 export default function RecoveryScreen() {
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const router = useRouter();
   const db = useSQLiteContext();
   const { activities, fetchedAt } = useActivities();
@@ -119,8 +122,8 @@ export default function RecoveryScreen() {
             <View
               style={[
                 styles.adviceIcon,
-                advice.level === 'rest' && { backgroundColor: colors.dangerSoft },
-                advice.level === 'watch' && { backgroundColor: colors.accentSoft },
+                advice.level === 'rest' && { backgroundColor: palette.dangerSoft },
+                advice.level === 'watch' && { backgroundColor: palette.accentSoft },
               ]}
             >
               <Ionicons
@@ -132,14 +135,14 @@ export default function RecoveryScreen() {
                       : 'shield-checkmark-outline'
                 }
                 size={18}
-                color={advice.level === 'rest' ? colors.danger : colors.accent}
+                color={advice.level === 'rest' ? palette.danger : palette.accent}
               />
             </View>
             <View style={styles.adviceBody}>
               <Text
                 style={[
                   styles.adviceTitle,
-                  advice.level === 'rest' && { color: colors.danger },
+                  advice.level === 'rest' && { color: palette.danger },
                 ]}
               >
                 {advice.title}
@@ -151,7 +154,7 @@ export default function RecoveryScreen() {
 
         {restDays != null ? (
           <View style={styles.restRow}>
-            <Ionicons name="walk-outline" size={15} color={colors.textDim} />
+            <Ionicons name="walk-outline" size={15} color={palette.textDim} />
             <Text style={styles.restText}>
               {restDays === 0
                 ? 'Hôm nay bạn đã chạy.'
@@ -208,7 +211,7 @@ export default function RecoveryScreen() {
                     style={[
                       styles.painDotText,
                       active && styles.painDotTextActive,
-                      level >= 4 && active && { color: colors.danger },
+                      level >= 4 && active && { color: palette.danger },
                     ]}
                   >
                     {level}
@@ -223,7 +226,7 @@ export default function RecoveryScreen() {
             value={note}
             onChangeText={setNote}
             placeholder="Ví dụ: đau khi xuống dốc, nhức sau buổi tempo…"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={palette.textFaint}
             style={styles.input}
             multiline
             maxLength={400}
@@ -240,7 +243,7 @@ export default function RecoveryScreen() {
 
         <Eyebrow style={styles.spaced}>Lịch sử</Eyebrow>
         {loading ? (
-          <ActivityIndicator color={colors.accent} style={styles.loading} />
+          <ActivityIndicator color={palette.accent} style={styles.loading} />
         ) : logs.length === 0 ? (
           <Text style={styles.emptyText}>Chưa có ghi chú nào. Hãy bắt đầu từ hôm nay.</Text>
         ) : (
@@ -250,13 +253,13 @@ export default function RecoveryScreen() {
                 <View
                   style={[
                     styles.logBadge,
-                    log.pain >= 4 ? { backgroundColor: colors.dangerSoft } : null,
+                    log.pain >= 4 ? { backgroundColor: palette.dangerSoft } : null,
                   ]}
                 >
                   <Text
                     style={[
                       styles.logBadgeText,
-                      log.pain >= 4 && { color: colors.danger },
+                      log.pain >= 4 && { color: palette.danger },
                     ]}
                   >
                     {log.pain}
@@ -275,7 +278,7 @@ export default function RecoveryScreen() {
                   accessibilityLabel="Xoá ghi chú"
                   style={({ pressed }) => pressed && { opacity: 0.5 }}
                 >
-                  <Ionicons name="trash-outline" size={16} color={colors.textFaint} />
+                  <Ionicons name="trash-outline" size={16} color={palette.textFaint} />
                 </Pressable>
               </View>
               {log.note ? <Text style={styles.logNote}>{log.note}</Text> : null}
@@ -287,31 +290,32 @@ export default function RecoveryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6 },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.2,
   },
   headerSpacer: { width: 36 },
   content: { paddingHorizontal: 20, paddingBottom: 44 },
-  subtitle: { fontSize: 11, color: colors.textFaint, lineHeight: 17, marginTop: 8, marginBottom: 16 },
+  subtitle: { fontSize: 11, color: c.textFaint, lineHeight: 17, marginTop: 8, marginBottom: 16 },
   adviceCard: {
     flexDirection: 'row',
     gap: 12,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.accentLine,
+    borderColor: c.accentLine,
     padding: 16,
   },
-  adviceCardWatch: { borderColor: colors.borderStrong },
-  adviceCardDanger: { borderColor: colors.danger, backgroundColor: colors.bgElevated },
+  adviceCardWatch: { borderColor: c.borderStrong },
+  adviceCardDanger: { borderColor: c.danger, backgroundColor: c.bgElevated },
   adviceIcon: {
     width: 36,
     height: 36,
@@ -320,25 +324,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   adviceBody: { flex: 1, gap: 3 },
-  adviceTitle: { fontSize: 13, fontWeight: '700', color: colors.accent },
-  adviceText: { fontSize: 11, color: colors.textDim, lineHeight: 17 },
+  adviceTitle: { fontSize: 13, fontWeight: '700', color: c.accent },
+  adviceText: { fontSize: 11, color: c.textDim, lineHeight: 17 },
   restRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 12 },
-  restText: { fontSize: 11, color: colors.textDim },
+  restText: { fontSize: 11, color: c.textDim },
   formCard: {
     marginTop: 18,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 16,
   },
-  formTitle: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 4 },
+  formTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 4 },
   fieldLabel: {
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
-    color: colors.textFaint,
+    color: c.textFaint,
     marginTop: 14,
     marginBottom: 8,
   },
@@ -347,54 +351,54 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
-  areaChipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentLine },
-  areaChipText: { fontSize: 11, fontWeight: '600', color: colors.textDim },
-  areaChipTextActive: { color: colors.accent },
+  areaChipActive: { backgroundColor: c.accentSoft, borderColor: c.accentLine },
+  areaChipText: { fontSize: 11, fontWeight: '600', color: c.textDim },
+  areaChipTextActive: { color: c.accent },
   painRow: { flexDirection: 'row', gap: 8 },
   painDot: {
     flex: 1,
     height: 38,
     borderRadius: radius.sm,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  painDotActive: { backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accentLine },
-  painDotDanger: { backgroundColor: colors.dangerSoft, borderColor: colors.danger },
+  painDotActive: { backgroundColor: c.accentSoft, borderWidth: 1, borderColor: c.accentLine },
+  painDotDanger: { backgroundColor: c.dangerSoft, borderColor: c.danger },
   painDotText: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.textDim,
+    color: c.textDim,
     fontVariant: ['tabular-nums'],
   },
-  painDotTextActive: { color: colors.accent },
+  painDotTextActive: { color: c.accent },
   input: {
-    backgroundColor: colors.bgElevated,
+    backgroundColor: c.bgElevated,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     paddingHorizontal: 12,
     paddingVertical: 10,
     minHeight: 74,
     fontSize: 12,
     lineHeight: 18,
-    color: colors.text,
+    color: c.text,
     textAlignVertical: 'top',
   },
   saveButton: { marginTop: 16 },
   spaced: { marginTop: 28 },
   loading: { marginTop: 16 },
-  emptyText: { fontSize: 11, color: colors.textFaint, marginTop: 12 },
+  emptyText: { fontSize: 11, color: c.textFaint, marginTop: 12 },
   logCard: {
     marginTop: 10,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 14,
     gap: 8,
   },
@@ -403,18 +407,18 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: radius.pill,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: c.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   logBadgeText: {
     fontSize: 12,
     fontWeight: '800',
-    color: colors.accent,
+    color: c.accent,
     fontVariant: ['tabular-nums'],
   },
   logBody: { flex: 1, gap: 1 },
-  logTitle: { fontSize: 12, fontWeight: '700', color: colors.text },
-  logDate: { fontSize: 10, color: colors.textFaint },
-  logNote: { fontSize: 11, color: colors.textDim, lineHeight: 17 },
+  logTitle: { fontSize: 12, fontWeight: '700', color: c.text },
+  logDate: { fontSize: 10, color: c.textFaint },
+  logNote: { fontSize: 11, color: c.textDim, lineHeight: 17 },
 });

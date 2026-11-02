@@ -6,11 +6,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Eyebrow, IconButton } from '@/components/ui';
 import { useActivities } from '@/hooks/useActivities';
-import { formatDayLabel, formatDuration, formatKmDecimal, formatPace } from '@/lib/format';
+import { formatDayLabel, formatDuration } from '@/lib/format';
+import { useUnit } from '@/hooks/useUnit';
 import { findSegments, type PersonalSegment } from '@/lib/segments';
-import { colors, radius } from '@/lib/theme';
+import { radius, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 
 export default function SegmentsScreen() {
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const router = useRouter();
   const { activities } = useActivities();
   const [openId, setOpenId] = useState<string | null>(null);
@@ -34,7 +38,7 @@ export default function SegmentsScreen() {
 
         {segments.length === 0 ? (
           <View style={styles.empty}>
-            <Ionicons name="git-compare-outline" size={30} color={colors.textFaint} />
+            <Ionicons name="git-compare-outline" size={30} color={palette.textFaint} />
             <Text style={styles.emptyTitle}>Chưa tìm thấy đoạn nào</Text>
             <Text style={styles.emptyBody}>
               Chạy lặp lại cùng một cung đường ít nhất 2 lần để xem so sánh thời gian tại đây.
@@ -64,6 +68,9 @@ function SegmentCard({
   open: boolean;
   onToggle: () => void;
 }) {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const worst = segment.runs[segment.runs.length - 1];
 
   return (
@@ -75,10 +82,10 @@ function SegmentCard({
         accessibilityLabel="Xem chi tiết đoạn chạy"
       >
         <View style={styles.iconWrap}>
-          <Ionicons name="git-compare" size={18} color={colors.accent} />
+          <Ionicons name="git-compare" size={18} color={palette.accent} />
         </View>
         <View style={styles.cardHeadBody}>
-          <Text style={styles.cardTitle}>{formatKmDecimal(segment.distanceM, 1)} km</Text>
+          <Text style={styles.cardTitle}>{u.dist(segment.distanceM, 1)} {u.label}</Text>
           <Text style={styles.cardSub}>{segment.runs.length} lần chạy</Text>
         </View>
         <View style={styles.bestBlock}>
@@ -88,12 +95,12 @@ function SegmentCard({
         <Ionicons
           name={open ? 'chevron-up' : 'chevron-down'}
           size={16}
-          color={colors.textFaint}
+          color={palette.textFaint}
         />
       </Pressable>
 
       <View style={styles.metaRow}>
-        <Meta label="Pace tốt nhất" value={`${formatPace(segment.best.paceSPerKm)}/km`} />
+        <Meta label="Pace tốt nhất" value={`${u.pace(segment.best.paceSPerKm)}${u.paceLabel}`} />
         <Meta
           label="Lần gần nhất"
           value={
@@ -136,6 +143,7 @@ function SegmentCard({
 }
 
 function Meta({ label, value }: { label: string; value: string }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.meta}>
       <Text style={styles.metaLabel}>{label}</Text>
@@ -144,38 +152,39 @@ function Meta({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6 },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.2,
   },
   headerSpacer: { width: 36 },
   content: { paddingHorizontal: 20, paddingBottom: 44 },
-  subtitle: { fontSize: 11, color: colors.textFaint, lineHeight: 17, marginTop: 8, marginBottom: 4 },
+  subtitle: { fontSize: 11, color: c.textFaint, lineHeight: 17, marginTop: 8, marginBottom: 4 },
   empty: {
     alignItems: 'center',
     gap: 8,
     marginTop: 40,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 28,
   },
-  emptyTitle: { fontSize: 14, fontWeight: '700', color: colors.text },
-  emptyBody: { fontSize: 11, color: colors.textFaint, textAlign: 'center', lineHeight: 17 },
+  emptyTitle: { fontSize: 14, fontWeight: '700', color: c.text },
+  emptyBody: { fontSize: 11, color: c.textFaint, textAlign: 'center', lineHeight: 17 },
   card: {
     marginTop: 12,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 16,
   },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -183,7 +192,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: radius.sm,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: c.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -191,17 +200,17 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.5,
     fontVariant: ['tabular-nums'],
   },
-  cardSub: { fontSize: 10, color: colors.textFaint },
+  cardSub: { fontSize: 10, color: c.textFaint },
   bestBlock: { alignItems: 'flex-end', gap: 1 },
-  bestLabel: { fontSize: 8, fontWeight: '700', letterSpacing: 1, color: colors.textFaint },
+  bestLabel: { fontSize: 8, fontWeight: '700', letterSpacing: 1, color: c.textFaint },
   bestValue: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.accent,
+    color: c.accent,
     fontVariant: ['tabular-nums'],
     letterSpacing: -0.5,
   },
@@ -211,14 +220,14 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
   },
   meta: { flex: 1, gap: 3 },
-  metaLabel: { fontSize: 9, color: colors.textFaint },
+  metaLabel: { fontSize: 9, color: c.textFaint },
   metaValue: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
   runList: { marginTop: 10 },
@@ -228,24 +237,24 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 9,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
   },
   runRank: {
     width: 18,
     fontSize: 11,
     fontWeight: '700',
-    color: colors.textFaint,
+    color: c.textFaint,
     fontVariant: ['tabular-nums'],
   },
   runBody: { flex: 1, gap: 1 },
-  runTitle: { fontSize: 12, fontWeight: '600', color: colors.text },
-  runDate: { fontSize: 9, color: colors.textFaint },
+  runTitle: { fontSize: 12, fontWeight: '600', color: c.text },
+  runDate: { fontSize: 9, color: c.textFaint },
   runRight: { alignItems: 'flex-end', gap: 1 },
   runTime: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
-  runGap: { fontSize: 9, color: colors.textFaint, fontVariant: ['tabular-nums'] },
+  runGap: { fontSize: 9, color: c.textFaint, fontVariant: ['tabular-nums'] },
 });

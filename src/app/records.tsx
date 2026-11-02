@@ -14,12 +14,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Eyebrow, IconButton } from '@/components/ui';
 import { listAllActivities } from '@/db/activities';
 import { personalBests } from '@/lib/efforts';
-import { formatDayLabel, formatDuration, formatKmDecimal, formatPace } from '@/lib/format';
+import { formatDayLabel, formatDuration } from '@/lib/format';
+import { useUnit } from '@/hooks/useUnit';
 import { predictRaces } from '@/lib/racePredictor';
-import { colors, radius } from '@/lib/theme';
+import { radius, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 import type { Activity } from '@/lib/types';
 
 export default function RecordsScreen() {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const router = useRouter();
   const db = useSQLiteContext();
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -72,7 +77,7 @@ export default function RecordsScreen() {
 
         {loading ? (
           <View style={styles.loading}>
-            <ActivityIndicator color={colors.accent} />
+            <ActivityIndicator color={palette.accent} />
           </View>
         ) : (
           <View style={styles.list}>
@@ -104,7 +109,7 @@ export default function RecordsScreen() {
                     <Text style={styles.distanceLabel}>{row.label}</Text>
                     {effort ? (
                       <View style={styles.pacePill}>
-                        <Text style={styles.pacePillText}>{formatPace(effort.paceSPerKm)}/km</Text>
+                        <Text style={styles.pacePillText}>{u.pace(effort.paceSPerKm)}{u.paceLabel}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -120,7 +125,7 @@ export default function RecordsScreen() {
                         <Text style={styles.metaText}>{formatDayLabel(activity.startedAt)}</Text>
                         <Text style={styles.metaDot}>·</Text>
                         <Text style={styles.metaText}>
-                          {formatKmDecimal(activity.distanceM, 1)} km
+                          {u.dist(activity.distanceM, 1)} {u.label}
                         </Text>
                       </View>
                     </>
@@ -161,8 +166,9 @@ export default function RecordsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -174,7 +180,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.2,
   },
   headerSpacer: { width: 36 },
@@ -185,37 +191,37 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: -1.1,
-    color: colors.text,
+    color: c.text,
   },
-  heroBody: { marginTop: 8, fontSize: 13, lineHeight: 20, color: colors.textDim, maxWidth: 320 },
+  heroBody: { marginTop: 8, fontSize: 13, lineHeight: 20, color: c.textDim, maxWidth: 320 },
   loading: { paddingVertical: 40, alignItems: 'center' },
   list: { gap: 10 },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 16,
   },
-  cardActive: { borderColor: colors.accentLine },
+  cardActive: { borderColor: c.accentLine },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   distanceLabel: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.3,
     textTransform: 'uppercase',
-    color: colors.textDim,
+    color: c.textDim,
   },
   pacePill: {
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: radius.pill,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: c.accentSoft,
   },
   pacePillText: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.accent,
+    color: c.accent,
     fontVariant: ['tabular-nums'],
   },
   time: {
@@ -224,36 +230,36 @@ const styles = StyleSheet.create({
     lineHeight: 44,
     fontWeight: '800',
     letterSpacing: -1.8,
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-  metaText: { fontSize: 11, color: colors.textFaint, flexShrink: 1 },
-  metaDot: { fontSize: 11, color: colors.textFaint },
-  emptyText: { marginTop: 8, fontSize: 12, lineHeight: 18, color: colors.textFaint },
-  footnote: { marginTop: 18, fontSize: 10, lineHeight: 16, color: colors.textFaint },
+  metaText: { fontSize: 11, color: c.textFaint, flexShrink: 1 },
+  metaDot: { fontSize: 11, color: c.textFaint },
+  emptyText: { marginTop: 8, fontSize: 12, lineHeight: 18, color: c.textFaint },
+  footnote: { marginTop: 18, fontSize: 10, lineHeight: 16, color: c.textFaint },
   predictionCard: {
     marginTop: 18,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 16,
     gap: 6,
   },
-  predictionHint: { fontSize: 11, color: colors.textFaint, marginBottom: 4 },
+  predictionHint: { fontSize: 11, color: c.textFaint, marginBottom: 4 },
   predictionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 6,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: c.border,
   },
-  predictionLabel: { fontSize: 13, color: colors.textDim, fontWeight: '600' },
+  predictionLabel: { fontSize: 13, color: c.textDim, fontWeight: '600' },
   predictionValue: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.accent,
+    color: c.accent,
     fontVariant: ['tabular-nums'],
   },
 });

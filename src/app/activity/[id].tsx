@@ -39,18 +39,14 @@ import { buildGpx, fileStamp, shareTextFile } from '@/lib/export';
 import { bestEffortsFor, EFFORT_DISTANCES } from '@/lib/efforts';
 import { FEELINGS } from '@/lib/feeling';
 import { ElevationProfile } from '@/components/ElevationProfile';
-import {
-  formatDayLabel,
-  formatDuration,
-  formatFullDate,
-  formatKmDecimal,
-  formatPace,
-  formatTime,
-} from '@/lib/format';
+import { formatDayLabel, formatDuration, formatFullDate, formatTime, METRES_PER_MILE } from '@/lib/format';
+import { useUnit } from '@/hooks/useUnit';
 import { boundsOf } from '@/lib/geo';
 import { hydrationMl } from '@/lib/hydration';
-import { colors, radius } from '@/lib/theme';
+import { radius, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 import { paceConsistency } from '@/lib/consistency';
+import { computeSplits } from '@/lib/splits';
 import { RUN_TYPES, runTypeLabel } from '@/lib/runType';
 import type { Activity, ActivitySummary, Feeling, RunType } from '@/lib/types';
 
@@ -62,6 +58,9 @@ const CARD_VARIANTS: { key: ShareCardVariant; label: string }[] = [
 ];
 
 export default function ActivityDetailScreen() {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const db = useSQLiteContext();
@@ -124,19 +123,25 @@ export default function ActivityDetailScreen() {
     };
   }, [activity]);
 
-  const paceValues = useMemo(() => {
+  const splits = useMemo(() => {
     if (!activity) return [];
-    return activity.splits.map((s) => 1000 / s.paceSPerKm);
-  }, [activity]);
+    // Stored splits are per kilometre; miles are re-bucketed from the route.
+    if (u.unit === 'mi' && activity.route.length > 1) {
+      return computeSplits(activity.route, METRES_PER_MILE);
+    }
+    return activity.splits;
+  }, [activity, u.unit]);
+
+  const paceValues = useMemo(() => splits.map((s) => 1000 / s.paceSPerKm), [splits]);
 
   const fastestSplitIndex = useMemo(() => {
-    if (!activity || activity.splits.length === 0) return 0;
+    if (splits.length === 0) return 0;
     let best = 0;
-    activity.splits.forEach((s, i) => {
-      if (s.paceSPerKm < activity.splits[best].paceSPerKm) best = i;
+    splits.forEach((s, i) => {
+      if (s.paceSPerKm < splits[best].paceSPerKm) best = i;
     });
     return best;
-  }, [activity]);
+  }, [splits]);
 
   const efforts = useMemo(
     () => (activity ? bestEffortsFor(activity.route) : null),
@@ -250,7 +255,7 @@ export default function ActivityDetailScreen() {
   if (loading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator color={palette.accent} />
       </View>
     );
   }
@@ -288,7 +293,7 @@ export default function ActivityDetailScreen() {
                 await updateActivityFavorite(db, activity.id, next);
                 setActivity((prev) => (prev ? { ...prev, favorite: next } : prev));
               }}
-              color={activity?.favorite ? colors.accent : colors.textDim}
+              color={activity?.favorite ? palette.accent : palette.textDim}
               accessibilityLabel={activity?.favorite ? "Bỏ yêu thích" : "Yêu thích"}
             />
             <IconButton
@@ -299,7 +304,7 @@ export default function ActivityDetailScreen() {
             <IconButton
               icon="trash-outline"
               onPress={onDelete}
-              color={colors.textFaint}
+              color={palette.textFaint}
               accessibilityLabel="Xoá buổi chạy"
             />
           </View>
@@ -322,7 +327,7 @@ export default function ActivityDetailScreen() {
               {coordinates.length > 1 ? (
                 <Polyline
                   coordinates={coordinates}
-                  strokeColor={colors.accent}
+                  strokeColor={palette.accent}
                   strokeWidth={4}
                   lineCap="round"
                   lineJoin="round"
@@ -339,22 +344,22 @@ export default function ActivityDetailScreen() {
         <View style={styles.hero}>
           <Eyebrow>Quãng đường</Eyebrow>
           <View style={styles.heroLine}>
-            <Text style={styles.heroNumber}>{formatKmDecimal(activity.distanceM)}</Text>
-            <Text style={styles.heroUnit}>km</Text>
+            <Text style={styles.heroNumber}>{u.dist(activity.distanceM)}</Text>
+            <Text style={styles.heroUnit}>{u.label}</Text>
           </View>
         </View>
 
         <View style={styles.primaryStats}>
           <PrimaryStat label="Thời gian" value={formatDuration(activity.durationS)} />
           <View style={styles.statDivider} />
-          <PrimaryStat label="Pace TB" value={formatPace(activity.avgPaceS)} suffix="/km" />
+          <PrimaryStat label="Pace TB" value={u.pace(activity.avgPaceS)} suffix={u.paceLabel} />
           <View style={styles.statDivider} />
-          <PrimaryStat label="Độ cao" value={String(Math.round(activity.elevGainM))} suffix="m" />
+          <PrimaryStat label="Độ cao" value={u.elev(activity.elevGainM)} suffix={u.elevLabel} />
         </View>
 
         <View style={styles.secondaryRow}>
           <Meta label="Calo" value={`${activity.calories} kcal`} />
-          <Meta label="Pace tốt nhất" value={`${formatPace(activity.bestPaceS)}/km`} />
+          <Meta label="Pace tốt nhất" value={`${u.pace(activity.bestPaceS)}${u.paceLabel}`} />
           <Meta label="Thời tiết" value={activity.weather ?? '--'} />
         </View>
 
@@ -375,17 +380,17 @@ export default function ActivityDetailScreen() {
           accessibilityLabel="Xem bài giãn cơ"
         >
           <Text style={styles.linkTextSmall}>Bài giãn cơ sau chạy</Text>
-          <Ionicons name="chevron-forward" size={14} color={colors.textFaint} />
+          <Ionicons name="chevron-forward" size={14} color={palette.textFaint} />
         </Pressable>
 
         <View style={styles.section}>
           <View style={styles.sectionHead}>
-            <Eyebrow>Pace theo km</Eyebrow>
+            <Eyebrow>{`Pace theo ${u.label}`}</Eyebrow>
             <Text style={styles.sectionHint}>cao hơn = nhanh hơn</Text>
           </View>
           <BarChart
             values={paceValues}
-            labels={activity.splits.map((s) => String(s.km))}
+            labels={splits.map((s) => String(s.km))}
             height={110}
             highlightIndex={fastestSplitIndex}
           />
@@ -394,14 +399,14 @@ export default function ActivityDetailScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHead}>
             <Eyebrow>Hồ sơ độ cao</Eyebrow>
-            <Text style={styles.sectionHint}>+{Math.round(activity.elevGainM)} m</Text>
+            <Text style={styles.sectionHint}>+{u.elev(activity.elevGainM)} {u.elevLabel}</Text>
           </View>
           <ElevationProfile route={activity.route} height={110} />
         </View>
 
         <View style={styles.section}>
           <Eyebrow style={{ marginBottom: 12 }}>Chia nhỏ</Eyebrow>
-          <SplitsList splits={activity.splits} />
+          <SplitsList splits={splits} />
         </View>
 
         {efforts ? (
@@ -425,7 +430,7 @@ export default function ActivityDetailScreen() {
                     {effort ? (
                       <>
                         <Text style={styles.effortTime}>{formatDuration(effort.durationS)}</Text>
-                        <Text style={styles.effortPace}>{formatPace(effort.paceSPerKm)}/km</Text>
+                        <Text style={styles.effortPace}>{u.pace(effort.paceSPerKm)}{u.paceLabel}</Text>
                       </>
                     ) : (
                       <Text style={styles.effortEmpty}>Chưa đủ cự ly</Text>
@@ -574,10 +579,10 @@ export default function ActivityDetailScreen() {
               <Text style={styles.consistencyUnit}>/100</Text>
               <View style={styles.consistencyMeta}>
                 <Text style={styles.consistencyLine}>
-                  Pace TB {formatPace(consistency.meanS)}/km
+                  Pace TB {u.pace(consistency.meanS)}{u.paceLabel}
                 </Text>
                 <Text style={styles.consistencyLine}>
-                  Chênh lệch {formatPace(consistency.spreadS)} · CV{' '}
+                  Chênh lệch {u.pace(consistency.spreadS)} · CV{' '}
                   {(consistency.cv * 100).toFixed(1)}%
                 </Text>
               </View>
@@ -596,15 +601,15 @@ export default function ActivityDetailScreen() {
             <View style={styles.compareCard}>
               <CompareRow
                 label="Quãng đường"
-                current={`${formatKmDecimal(activity.distanceM)} km`}
-                previous={`${formatKmDecimal(previousActivity.distanceM)} km`}
+                current={`${u.dist(activity.distanceM)} ${u.label}`}
+                previous={`${u.dist(previousActivity.distanceM)} ${u.label}`}
                 delta={deltaPct(activity.distanceM, previousActivity.distanceM)}
                 unit="%"
               />
               <CompareRow
                 label="Pace TB"
-                current={`${formatPace(activity.avgPaceS)}/km`}
-                previous={`${formatPace(previousActivity.avgPaceS)}/km`}
+                current={`${u.pace(activity.avgPaceS)}${u.paceLabel}`}
+                previous={`${u.pace(previousActivity.avgPaceS)}${u.paceLabel}`}
                 deltaSeconds={
                   activity.avgPaceS != null && previousActivity.avgPaceS != null
                     ? activity.avgPaceS - previousActivity.avgPaceS
@@ -613,8 +618,8 @@ export default function ActivityDetailScreen() {
               />
               <CompareRow
                 label="Độ cao"
-                current={`${Math.round(activity.elevGainM)} m`}
-                previous={`${Math.round(previousActivity.elevGainM)} m`}
+                current={`${u.elev(activity.elevGainM)} ${u.elevLabel}`}
+                previous={`${u.elev(previousActivity.elevGainM)} ${u.elevLabel}`}
                 delta={deltaPct(activity.elevGainM, previousActivity.elevGainM)}
                 unit="%"
                 last
@@ -628,7 +633,7 @@ export default function ActivityDetailScreen() {
                 accessibilityLabel="Xem buổi chạy trước"
               >
                 <Text style={styles.linkTextSmall}>Xem buổi chạy trước</Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.textFaint} />
+                <Ionicons name="chevron-forward" size={14} color={palette.textFaint} />
               </Pressable>
             </View>
           </View>
@@ -678,12 +683,12 @@ export default function ActivityDetailScreen() {
             value={notesDraft}
             onChangeText={setNotesDraft}
             placeholder="Hôm nay chạy thế nào? Ghi lại cảm giác, thời tiết, nhịp thở..."
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={palette.textFaint}
             style={styles.notesInput}
             multiline
             maxLength={2000}
             textAlignVertical="top"
-            selectionColor={colors.accent}
+            selectionColor={palette.accent}
           />
 
           <View style={styles.notesFooter}>
@@ -801,13 +806,13 @@ export default function ActivityDetailScreen() {
               value={titleDraft}
               onChangeText={setTitleDraft}
               placeholder="Ví dụ: Chạy dài Chủ nhật"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={palette.textFaint}
               style={styles.renameInput}
               maxLength={60}
               autoFocus
               returnKeyType="done"
               onSubmitEditing={saveRename}
-              selectionColor={colors.accent}
+              selectionColor={palette.accent}
             />
             <View style={styles.renameActions}>
               <Button
@@ -826,6 +831,7 @@ export default function ActivityDetailScreen() {
 }
 
 function PrimaryStat({ label, value, suffix }: { label: string; value: string; suffix?: string }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.primaryStat}>
       <Text style={styles.statLabel}>{label.toUpperCase()}</Text>
@@ -838,6 +844,7 @@ function PrimaryStat({ label, value, suffix }: { label: string; value: string; s
 }
 
 function Meta({ label, value }: { label: string; value: string }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.metaItem}>
       <Text style={styles.metaLabel}>{label}</Text>
@@ -863,17 +870,19 @@ function CompareRow({
   unit?: string;
   last?: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   let deltaText = '--';
-  let deltaColor: string = colors.textFaint;
+  let deltaColor: string = palette.textFaint;
   if (deltaSeconds != null) {
     const sign = deltaSeconds > 0 ? '+' : '';
     deltaText = `${sign}${Math.round(deltaSeconds)}s`;
-    deltaColor = deltaSeconds <= 0 ? colors.accent : colors.danger;
+    deltaColor = deltaSeconds <= 0 ? palette.accent : palette.danger;
   } else if (delta != null && Number.isFinite(delta)) {
     const sign = delta > 0 ? '+' : '';
     deltaText = `${sign}${Math.round(delta)}${unit ?? ''}`;
-    deltaColor = delta >= 0 ? colors.accent : colors.danger;
-    if (label === 'Pace TB') deltaColor = delta <= 0 ? colors.accent : colors.danger;
+    deltaColor = delta >= 0 ? palette.accent : palette.danger;
+    if (label === 'Pace TB') deltaColor = delta <= 0 ? palette.accent : palette.danger;
   }
 
   return (
@@ -893,18 +902,19 @@ function deltaPct(current: number, previous: number): number {
   return ((current - previous) / previous) * 100;
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
-  safeTop: { backgroundColor: colors.bg },
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.bg },
+  safeTop: { backgroundColor: c.bg },
   loading: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: c.bg,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
     padding: 24,
   },
-  emptyText: { color: colors.textDim, fontSize: 15 },
+  emptyText: { color: c.textDim, fontSize: 15 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -913,20 +923,20 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: colors.text, letterSpacing: -0.3 },
-  headerSub: { fontSize: 11, color: colors.textFaint, marginTop: 2 },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: c.text, letterSpacing: -0.3 },
+  headerSub: { fontSize: 11, color: c.textFaint, marginTop: 2 },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
   content: { paddingHorizontal: 20, paddingBottom: 40 },
   mapWrap: {
     height: 220,
     borderRadius: radius.lg,
     overflow: 'hidden',
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   mapFallback: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  mapFallbackText: { color: colors.textFaint, fontSize: 13 },
+  mapFallbackText: { color: c.textFaint, fontSize: 13 },
   hero: { marginTop: 24 },
   heroLine: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 4 },
   heroNumber: {
@@ -934,39 +944,39 @@ const styles = StyleSheet.create({
     lineHeight: 70,
     fontWeight: '800',
     letterSpacing: -3.4,
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
-  heroUnit: { fontSize: 19, fontWeight: '700', color: colors.accent },
+  heroUnit: { fontSize: 19, fontWeight: '700', color: c.accent },
   primaryStats: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 18,
     paddingTop: 18,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
   },
   primaryStat: { flex: 1 },
   statLabel: {
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1.1,
-    color: colors.textFaint,
+    color: c.textFaint,
     marginBottom: 5,
   },
   statValueLine: { flexDirection: 'row', alignItems: 'baseline', gap: 3 },
   statValue: {
     fontSize: 21,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.5,
     fontVariant: ['tabular-nums'],
   },
-  statSuffix: { fontSize: 10, color: colors.textFaint },
+  statSuffix: { fontSize: 10, color: c.textFaint },
   statDivider: {
     width: StyleSheet.hairlineWidth,
     height: 28,
-    backgroundColor: colors.border,
+    backgroundColor: c.border,
     marginHorizontal: 12,
   },
   secondaryRow: {
@@ -976,18 +986,18 @@ const styles = StyleSheet.create({
   },
   metaItem: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.sm,
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
-  metaLabel: { fontSize: 10, color: colors.textFaint, marginBottom: 4 },
+  metaLabel: { fontSize: 10, color: c.textFaint, marginBottom: 4 },
   metaValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
   section: { marginTop: 30 },
@@ -997,12 +1007,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 14,
   },
-  sectionHint: { fontSize: 10, color: colors.textFaint },
+  sectionHint: { fontSize: 10, color: c.textFaint },
   effortList: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     paddingHorizontal: 14,
   },
   effortRow: {
@@ -1011,65 +1021,65 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 11,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: c.border,
   },
   effortLabel: {
     width: 58,
     fontSize: 12,
     fontWeight: '700',
-    color: colors.textDim,
+    color: c.textDim,
     letterSpacing: 0.3,
   },
   effortTime: {
     flex: 1,
     fontSize: 15,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
   effortPace: {
     fontSize: 11,
-    color: colors.accent,
+    color: c.accent,
     fontVariant: ['tabular-nums'],
   },
-  effortEmpty: { flex: 1, fontSize: 11, color: colors.textFaint },
+  effortEmpty: { flex: 1, fontSize: 11, color: c.textFaint },
   runTypeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   runTypeChip: {
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
-  runTypeChipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentLine },
-  runTypeChipText: { fontSize: 11, fontWeight: '600', color: colors.textDim },
-  runTypeChipTextActive: { color: colors.accent },
+  runTypeChipActive: { backgroundColor: c.accentSoft, borderColor: c.accentLine },
+  runTypeChipText: { fontSize: 11, fontWeight: '600', color: c.textDim },
+  runTypeChipTextActive: { color: c.accent },
   consistencyCard: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 6,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 16,
   },
   consistencyScore: {
     fontSize: 34,
     fontWeight: '800',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
     letterSpacing: -1.4,
   },
-  consistencyUnit: { fontSize: 13, color: colors.textFaint, fontWeight: '600' },
+  consistencyUnit: { fontSize: 13, color: c.textFaint, fontWeight: '600' },
   consistencyMeta: { flex: 1, marginLeft: 10, gap: 4 },
-  consistencyLine: { fontSize: 11, color: colors.textDim },
+  consistencyLine: { fontSize: 11, color: c.textDim },
   compareCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     paddingHorizontal: 14,
   },
   compareRow: {
@@ -1077,18 +1087,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: c.border,
     gap: 8,
   },
-  compareLabel: { flex: 1.1, fontSize: 12, color: colors.textDim, fontWeight: '600' },
+  compareLabel: { flex: 1.1, fontSize: 12, color: c.textDim, fontWeight: '600' },
   compareValues: { flex: 1.4, alignItems: 'flex-end' },
   compareCurrent: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
-  comparePrevious: { fontSize: 10, color: colors.textFaint, marginTop: 2 },
+  comparePrevious: { fontSize: 10, color: c.textFaint, marginTop: 2 },
   compareDelta: {
     width: 64,
     alignItems: 'flex-end',
@@ -1103,10 +1113,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
   },
-  linkTextSmall: { fontSize: 12, color: colors.textDim, fontWeight: '600' },
-  hydrationHint: { marginTop: 10, fontSize: 11, color: colors.textFaint },
+  linkTextSmall: { fontSize: 12, color: c.textDim, fontWeight: '600' },
+  hydrationHint: { marginTop: 10, fontSize: 11, color: c.textFaint },
   feelingRow: { flexDirection: 'row', gap: 8 },
   feelingChip: {
     flex: 1,
@@ -1114,33 +1124,33 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 2,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
-  feelingChipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentLine },
+  feelingChipActive: { backgroundColor: c.accentSoft, borderColor: c.accentLine },
   feelingEmoji: { fontSize: 20 },
   feelingLabel: {
     marginTop: 5,
     fontSize: 8,
     fontWeight: '600',
-    color: colors.textFaint,
+    color: c.textFaint,
   },
-  feelingLabelActive: { color: colors.accent },
-  feelingHint: { marginTop: 8, fontSize: 11, color: colors.textFaint },
+  feelingLabelActive: { color: c.accent },
+  feelingHint: { marginTop: 8, fontSize: 11, color: c.textFaint },
   notesInput: {
     marginTop: 12,
     minHeight: 96,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong,
+    borderColor: c.borderStrong,
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 12,
     fontSize: 14,
     lineHeight: 20,
-    color: colors.text,
+    color: c.text,
   },
   notesFooter: {
     flexDirection: 'row',
@@ -1150,7 +1160,7 @@ const styles = StyleSheet.create({
   },
   notesCount: {
     fontSize: 10,
-    color: colors.textFaint,
+    color: c.textFaint,
     fontVariant: ['tabular-nums'],
   },
   notesButton: { minWidth: 132 },
@@ -1162,13 +1172,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
-  variantChipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentLine },
-  variantText: { fontSize: 11, fontWeight: '600', color: colors.textDim },
-  variantTextActive: { color: colors.accent },
+  variantChipActive: { backgroundColor: c.accentSoft, borderColor: c.accentLine },
+  variantText: { fontSize: 11, fontWeight: '600', color: c.textDim },
+  variantTextActive: { color: c.accent },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.86)',
@@ -1193,28 +1203,28 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   renameCard: {
-    backgroundColor: colors.bgElevated,
+    backgroundColor: c.bgElevated,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 20,
     gap: 14,
   },
   renameTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.3,
   },
   renameInput: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong,
+    borderColor: c.borderStrong,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: colors.text,
+    color: c.text,
   },
   renameActions: { flexDirection: 'row', gap: 10 },
   renameButton: { flex: 1 },

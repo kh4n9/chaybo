@@ -48,14 +48,19 @@ import {
   shareTextFile,
   type ExportKind,
 } from '@/lib/export';
-import { formatKmDecimal, startOfWeek } from '@/lib/format';
+import { startOfWeek, metersToUnit, unitToMeters } from '@/lib/format';
+import { useUnit } from '@/hooks/useUnit';
 import { GpxError, parseGpx, splitDuplicateTracks, type ImportedGpxTrack } from '@/lib/gpx';
-import { colors, radius } from '@/lib/theme';
+import { radius, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 import { PLAN_GOALS, PLAN_LEVELS, toPlanGoal, toPlanLevel } from '@/lib/trainingPlan';
 
 type BusyKind = ExportKind | 'clear' | 'restore' | 'gpx-import';
 
 export default function SettingsScreen() {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const router = useRouter();
   const db = useSQLiteContext();
   const { settings, update } = useSettings();
@@ -74,6 +79,10 @@ export default function SettingsScreen() {
     settings.weeklyGoalKm > 0
       ? Math.min(1, weekDistanceM / (settings.weeklyGoalKm * 1000))
       : 0;
+
+  // Goals are stored in km; the steppers show the unit chosen in settings.
+  const goalToDisplay = (km: number) => Math.round(metersToUnit(km * 1000, u.unit));
+  const goalFromDisplay = (value: number) => Math.round(unitToMeters(value, u.unit) / 1000);
 
   const onExport = async (kind: ExportKind) => {
     setBusy(kind);
@@ -272,7 +281,7 @@ export default function SettingsScreen() {
     const target = tracks;
     Alert.alert(
       tracks.length === 1 ? 'Nhập buổi chạy này?' : `Nhập ${tracks.length} buổi chạy?`,
-      `${formatKmDecimal(totalKm, 1)} km · ${tracks[0].title}`,
+      `${u.dist(totalKm * 1000, 1)} ${u.label} · ${tracks[0].title}`,
       [
         { text: 'Huỷ', style: 'cancel' },
         {
@@ -320,6 +329,30 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Section title="Giao diện &amp; đơn vị">
+          <View style={styles.card}>
+            <Text style={styles.choiceLabel}>Chủ đề</Text>
+            <ChoiceRow
+              options={[
+                { key: 'dark', label: 'Tối', hint: 'Nền đen, chữ sáng' },
+                { key: 'light', label: 'Sáng', hint: 'Nền giấy, chữ mực' },
+              ]}
+              value={settings.theme}
+              onChange={(key) => setSetting({ theme: key === 'light' ? 'light' : 'dark' })}
+            />
+
+            <Text style={[styles.choiceLabel, styles.choiceLabelSpaced]}>Đơn vị</Text>
+            <ChoiceRow
+              options={[
+                { key: 'km', label: 'Kilômét', hint: 'km · m' },
+                { key: 'mi', label: 'Dặm', hint: 'mi · ft' },
+              ]}
+              value={settings.units}
+              onChange={(key) => setSetting({ units: key === 'mi' ? 'mi' : 'km' })}
+            />
+          </View>
+        </Section>
+
         <Section title="Cá nhân">
           <View style={styles.card}>
             <NumberRow
@@ -339,11 +372,12 @@ export default function SettingsScreen() {
             <NumberRow
               label="Quãng đường"
               hint="0 = tắt mục tiêu"
-              value={settings.weeklyGoalKm}
-              unit="km"
-              min={GOAL_RANGE.min}
-              max={GOAL_RANGE.max}
-              onChange={(weeklyGoalKm) => setSetting({ weeklyGoalKm })}
+              value={goalToDisplay(settings.weeklyGoalKm)}
+              unit={u.label}
+              min={0}
+              max={goalToDisplay(GOAL_RANGE.max)}
+              step={u.unit === 'mi' ? 1 : 5}
+              onChange={(value) => setSetting({ weeklyGoalKm: goalFromDisplay(value) })}
             />
 
             {settings.weeklyGoalKm > 0 ? (
@@ -353,7 +387,7 @@ export default function SettingsScreen() {
                 </View>
                 <View style={styles.goalLabels}>
                   <Text style={styles.goalDone}>
-                    {formatKmDecimal(weekDistanceM, 1)} km tuần này
+                    {u.dist(weekDistanceM, 1)} {u.label} tuần này
                   </Text>
                   <Text style={styles.goalTarget}>{Math.round(goalPct * 100)}%</Text>
                 </View>
@@ -367,23 +401,23 @@ export default function SettingsScreen() {
             <NumberRow
               label="Mỗi tháng"
               hint="0 = tắt mục tiêu"
-              value={settings.monthlyGoalKm}
-              unit="km"
-              min={MONTH_GOAL_RANGE.min}
-              max={MONTH_GOAL_RANGE.max}
-              step={5}
-              onChange={(monthlyGoalKm) => setSetting({ monthlyGoalKm })}
+              value={goalToDisplay(settings.monthlyGoalKm)}
+              unit={u.label}
+              min={0}
+              max={goalToDisplay(MONTH_GOAL_RANGE.max)}
+              step={u.unit === 'mi' ? 3 : 5}
+              onChange={(value) => setSetting({ monthlyGoalKm: goalFromDisplay(value) })}
             />
             <Divider />
             <NumberRow
               label="Mỗi năm"
               hint="0 = tắt mục tiêu"
-              value={settings.yearlyGoalKm}
-              unit="km"
-              min={YEAR_GOAL_RANGE.min}
-              max={YEAR_GOAL_RANGE.max}
-              step={10}
-              onChange={(yearlyGoalKm) => setSetting({ yearlyGoalKm })}
+              value={goalToDisplay(settings.yearlyGoalKm)}
+              unit={u.label}
+              min={0}
+              max={goalToDisplay(YEAR_GOAL_RANGE.max)}
+              step={u.unit === 'mi' ? 5 : 10}
+              onChange={(value) => setSetting({ yearlyGoalKm: goalFromDisplay(value) })}
             />
           </View>
         </Section>
@@ -507,7 +541,7 @@ export default function SettingsScreen() {
                 value={newGearName}
                 onChangeText={setNewGearName}
                 placeholder="Tên giày, ví dụ: Nike Pegasus 41"
-                placeholderTextColor={colors.textFaint}
+                placeholderTextColor={palette.textFaint}
                 style={styles.gearInput}
                 maxLength={60}
               />
@@ -532,7 +566,7 @@ export default function SettingsScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Thêm giày"
               >
-                <Ionicons name="add" size={18} color={colors.bg} />
+                <Ionicons name="add" size={18} color={palette.bg} />
               </Pressable>
             </View>
             {gear.length === 0 ? (
@@ -545,7 +579,7 @@ export default function SettingsScreen() {
                     <View style={styles.gearInfo}>
                       <Text style={styles.gearName}>{item.name}</Text>
                       <Text style={styles.gearMeta}>
-                        {formatKmDecimal(item.totalDistanceM, 1)} km đã chạy
+                        {u.dist(item.totalDistanceM, 1)} {u.label} đã chạy
                       </Text>
                     </View>
                     <Pressable
@@ -558,7 +592,7 @@ export default function SettingsScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={`Xoá ${item.name}`}
                     >
-                      <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                      <Ionicons name="trash-outline" size={16} color={palette.danger} />
                     </Pressable>
                   </View>
                 </View>
@@ -569,7 +603,7 @@ export default function SettingsScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerTitle}>
-            chaybo<Text style={{ color: colors.accent }}>.</Text> v{version}
+            chaybo<Text style={{ color: palette.accent }}>.</Text> v{version}
           </Text>
           <Text style={styles.footerBody}>
             Dữ liệu chỉ nằm trên chiếc iPhone này, không có tài khoản và không gửi lên máy chủ.
@@ -587,6 +621,7 @@ function formatShortDate(ms: number): string {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.section}>
       <Eyebrow style={styles.sectionTitle}>{title}</Eyebrow>
@@ -614,6 +649,7 @@ function NumberRow({
   step?: number;
   onChange: (next: number) => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.numberRow}>
       <View style={styles.numberText}>
@@ -652,6 +688,7 @@ function ChoiceRow({
   value: string;
   onChange: (next: string) => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.choiceRow}>
       {options.map((option) => {
@@ -694,6 +731,8 @@ function StepButton({
   disabled?: boolean;
   accessibilityLabel: string;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   return (
     <Pressable
       onPress={onPress}
@@ -707,7 +746,7 @@ function StepButton({
         disabled && { opacity: 0.35 },
       ]}
     >
-      <Ionicons name={icon} size={16} color={colors.text} />
+      <Ionicons name={icon} size={16} color={palette.text} />
     </Pressable>
   );
 }
@@ -729,7 +768,9 @@ function ActionRow({
   disabled?: boolean;
   danger?: boolean;
 }) {
-  const tint = danger ? colors.danger : colors.text;
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
+  const tint = danger ? palette.danger : palette.text;
 
   return (
     <Pressable
@@ -739,8 +780,8 @@ function ActionRow({
       accessibilityLabel={label}
       style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.65 }]}
     >
-      <View style={[styles.actionIcon, danger && { backgroundColor: colors.dangerSoft }]}>
-        <Ionicons name={icon} size={17} color={danger ? colors.danger : colors.textDim} />
+      <View style={[styles.actionIcon, danger && { backgroundColor: palette.dangerSoft }]}>
+        <Ionicons name={icon} size={17} color={danger ? palette.danger : palette.textDim} />
       </View>
 
       <View style={styles.actionText}>
@@ -751,12 +792,12 @@ function ActionRow({
       </View>
 
       {loading ? (
-        <ActivityIndicator color={colors.textDim} size="small" />
+        <ActivityIndicator color={palette.textDim} size="small" />
       ) : (
         <Ionicons
           name="chevron-forward"
           size={16}
-          color={colors.textFaint}
+          color={palette.textFaint}
           style={disabled ? { opacity: 0.4 } : undefined}
         />
       )}
@@ -764,8 +805,9 @@ function ActionRow({
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -777,7 +819,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.2,
   },
   headerSpacer: { width: 36 },
@@ -789,7 +831,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
-    color: colors.textFaint,
+    color: c.textFaint,
     paddingTop: 14,
   },
   choiceLabelSpaced: { paddingTop: 16 },
@@ -798,22 +840,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: radius.pill,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: c.bgElevated,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     alignItems: 'center',
   },
-  choiceChipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentLine },
-  choiceChipLabel: { fontSize: 12, fontWeight: '700', color: colors.textDim },
-  choiceChipLabelActive: { color: colors.accent },
-  choiceChipHint: { fontSize: 9, color: colors.textFaint, marginTop: 1 },
-  choiceChipHintActive: { color: colors.accentLine },
+  choiceChipActive: { backgroundColor: c.accentSoft, borderColor: c.accentLine },
+  choiceChipLabel: { fontSize: 12, fontWeight: '700', color: c.textDim },
+  choiceChipLabelActive: { color: c.accent },
+  choiceChipHint: { fontSize: 9, color: c.textFaint, marginTop: 1 },
+  choiceChipHintActive: { color: c.accentLine },
   choiceDivider: { marginTop: 16 },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     paddingHorizontal: 16,
   },
   numberRow: {
@@ -823,17 +865,17 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   numberText: { flex: 1 },
-  rowLabel: { fontSize: 15, fontWeight: '600', color: colors.text },
-  rowHint: { fontSize: 11, color: colors.textFaint, marginTop: 3 },
+  rowLabel: { fontSize: 15, fontWeight: '600', color: c.text },
+  rowHint: { fontSize: 11, color: c.textFaint, marginTop: 3 },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: c.bgElevated,
     borderRadius: radius.pill,
     padding: 4,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   stepButton: {
     width: 30,
@@ -841,7 +883,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
   },
   stepperValue: {
     flexDirection: 'row',
@@ -853,25 +895,25 @@ const styles = StyleSheet.create({
   stepperNumber: {
     fontSize: 17,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
     letterSpacing: -0.4,
   },
-  stepperUnit: { fontSize: 10, color: colors.textFaint, fontWeight: '600' },
+  stepperUnit: { fontSize: 10, color: c.textFaint, fontWeight: '600' },
   goal: { paddingBottom: 16, gap: 8 },
   goalTrack: {
     height: 5,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     overflow: 'hidden',
   },
-  goalFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.accent },
+  goalFill: { height: '100%', borderRadius: radius.pill, backgroundColor: c.accent },
   goalLabels: { flexDirection: 'row', justifyContent: 'space-between' },
-  goalDone: { fontSize: 11, color: colors.textDim },
+  goalDone: { fontSize: 11, color: c.textDim },
   goalTarget: {
     fontSize: 11,
     fontWeight: '700',
-    color: colors.accent,
+    color: c.accent,
     fontVariant: ['tabular-nums'],
   },
   actionRow: {
@@ -884,38 +926,38 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: radius.sm,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
   actionText: { flex: 1 },
   actionLabel: { fontSize: 14, fontWeight: '600' },
-  actionHint: { fontSize: 11, color: colors.textFaint, marginTop: 3 },
+  actionHint: { fontSize: 11, color: c.textFaint, marginTop: 3 },
   gearInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingVertical: 12 },
   gearInput: {
     flex: 1,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: c.bgElevated,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong,
+    borderColor: c.borderStrong,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: colors.text,
+    color: c.text,
   },
   gearAddButton: {
     width: 38,
     height: 38,
     borderRadius: radius.pill,
-    backgroundColor: colors.accent,
+    backgroundColor: c.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  gearEmpty: { fontSize: 12, color: colors.textFaint, paddingVertical: 12 },
+  gearEmpty: { fontSize: 12, color: c.textFaint, paddingVertical: 12 },
   gearRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 10 },
   gearInfo: { flex: 1 },
-  gearName: { fontSize: 14, fontWeight: '600', color: colors.text },
-  gearMeta: { fontSize: 11, color: colors.textFaint, marginTop: 2 },
+  gearName: { fontSize: 14, fontWeight: '600', color: c.text },
+  gearMeta: { fontSize: 11, color: c.textFaint, marginTop: 2 },
   gearDelete: {
     width: 32,
     height: 32,
@@ -924,6 +966,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   footer: { marginTop: 6, paddingHorizontal: 4 },
-  footerTitle: { fontSize: 13, fontWeight: '700', color: colors.textDim },
-  footerBody: { fontSize: 12, lineHeight: 18, color: colors.textFaint, marginTop: 6 },
+  footerTitle: { fontSize: 13, fontWeight: '700', color: c.textDim },
+  footerBody: { fontSize: 12, lineHeight: 18, color: c.textFaint, marginTop: 6 },
 });

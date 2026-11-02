@@ -7,8 +7,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Eyebrow, IconButton } from '@/components/ui';
 import { useActivities } from '@/hooks/useActivities';
 import { useSettings } from '@/hooks/useSettings';
-import { formatDayLabel, formatKmDecimal, startOfWeek } from '@/lib/format';
-import { colors, radius } from '@/lib/theme';
+import { formatDayLabel, startOfWeek } from '@/lib/format';
+import { useUnit } from '@/hooks/useUnit';
+import { radius, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 import {
   PLAN_GOALS,
   PLAN_LEVELS,
@@ -24,6 +26,9 @@ import {
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
 export default function PlanScreen() {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const router = useRouter();
   const { activities, fetchedAt } = useActivities();
   const { settings, update } = useSettings();
@@ -64,7 +69,7 @@ export default function PlanScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {!plan || !progress ? (
           <View style={styles.loading}>
-            <ActivityIndicator color={colors.accent} />
+            <ActivityIndicator color={palette.accent} />
           </View>
         ) : (
           <>
@@ -105,7 +110,7 @@ export default function PlanScreen() {
                 </Text>
                 <Text style={styles.startHint}>
                   {configured
-                    ? `${plan.weeks} tuần · tổng ${formatKmDecimal(plan.totalKm * 1000, 0)} km`
+                    ? `${plan.weeks} tuần · tổng ${u.dist(plan.totalKm * 1000, 0)} ${u.label}`
                     : 'Mọi buổi sẽ rơi vào các ngày trong tuần, bắt đầu từ thứ Hai.'}
                 </Text>
               </View>
@@ -146,20 +151,21 @@ export default function PlanScreen() {
                 />
               </View>
               <Text style={styles.progressFootnote}>
-                Đã chạy {formatKmDecimal(progress.completedKm, 1)} /{' '}
-                {formatKmDecimal(progress.plannedKm, 0)} km theo kế hoạch
+                Đã chạy {u.dist(progress.completedKm, 1)} /{' '}
+                {u.dist(progress.plannedKm, 0)} {u.label} theo kế hoạch
               </Text>
             </View>
 
             {progress.nextSession ? (
               <View style={styles.nextCard}>
                 <View style={styles.nextIcon}>
-                  <Ionicons name="flash" size={18} color={colors.bg} />
+                  <Ionicons name="flash" size={18} color={palette.bg} />
                 </View>
                 <View style={styles.nextBody}>
                   <Text style={styles.nextEyebrow}>BUỔI TIẾP THEO</Text>
                   <Text style={styles.nextTitle}>
-                    {progress.nextSession.title} · {progress.nextSession.distanceKm} km
+                    {progress.nextSession.title} ·{' '}
+                    {u.dist(progress.nextSession.distanceKm * 1000, 1)} {u.label}
                   </Text>
                   <Text style={styles.nextHint}>
                     {WEEKDAYS[progress.nextSession.day]} ·{' '}
@@ -170,7 +176,7 @@ export default function PlanScreen() {
             ) : (
               <View style={styles.nextCard}>
                 <View style={styles.nextIcon}>
-                  <Ionicons name="trophy" size={18} color={colors.bg} />
+                  <Ionicons name="trophy" size={18} color={palette.bg} />
                 </View>
                 <View style={styles.nextBody}>
                   <Text style={styles.nextEyebrow}>KẾ HOẠCH ĐÃ XONG</Text>
@@ -202,7 +208,7 @@ export default function PlanScreen() {
                     <View style={styles.weekInfo}>
                       <Text style={styles.weekTitle}>Tuần {week}</Text>
                       <Text style={styles.weekHint}>
-                        {weekKm > 0 ? `${formatKmDecimal(weekKm * 1000, 1)} km` : 'Tuần thi đấu'} ·{' '}
+                        {weekKm > 0 ? `${u.dist(weekKm * 1000, 1)} ${u.label}` : 'Tuần thi đấu'} ·{' '}
                         {completed}/{sessions.length} buổi
                       </Text>
                     </View>
@@ -210,7 +216,7 @@ export default function PlanScreen() {
                     <Ionicons
                       name={open ? 'chevron-up' : 'chevron-down'}
                       size={16}
-                      color={colors.textFaint}
+                      color={palette.textFaint}
                     />
                   </Pressable>
 
@@ -251,6 +257,7 @@ function Chip({
   active: boolean;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -269,12 +276,15 @@ function Chip({
 }
 
 function SessionRow({ session, done }: { session: PlanSession; done: boolean }) {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   return (
     <View style={styles.sessionRow}>
       <Ionicons
         name={done ? 'checkmark-circle' : 'ellipse-outline'}
         size={18}
-        color={done ? colors.accent : colors.textFaint}
+        color={done ? palette.accent : palette.textFaint}
       />
       <View style={styles.sessionBody}>
         <View style={styles.sessionTitleLine}>
@@ -288,22 +298,25 @@ function SessionRow({ session, done }: { session: PlanSession; done: boolean }) 
         </Text>
       </View>
       <View style={styles.sessionRight}>
-        <Text style={styles.sessionKm}>{session.distanceKm} km</Text>
+        <Text style={styles.sessionKm}>
+          {u.dist(session.distanceKm * 1000, 1)} {u.label}
+        </Text>
         <Text style={styles.sessionDay}>{WEEKDAYS[session.day]}</Text>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6 },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.2,
   },
   headerSpacer: { width: 36 },
@@ -314,122 +327,122 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     alignItems: 'center',
   },
-  chipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentLine },
-  chipLabel: { fontSize: 13, fontWeight: '700', color: colors.textDim },
-  chipLabelActive: { color: colors.accent },
-  chipHint: { fontSize: 9, color: colors.textFaint, marginTop: 1 },
-  chipHintActive: { color: colors.accentLine },
-  hint: { fontSize: 11, color: colors.textFaint, marginTop: 8 },
+  chipActive: { backgroundColor: c.accentSoft, borderColor: c.accentLine },
+  chipLabel: { fontSize: 13, fontWeight: '700', color: c.textDim },
+  chipLabelActive: { color: c.accent },
+  chipHint: { fontSize: 9, color: c.textFaint, marginTop: 1 },
+  chipHintActive: { color: c.accentLine },
+  hint: { fontSize: 11, color: c.textFaint, marginTop: 8 },
   spaced: { marginTop: 26 },
   startCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     marginTop: 22,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 16,
   },
   startInfo: { flex: 1, gap: 2 },
-  startLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, color: colors.textFaint },
-  startValue: { fontSize: 17, fontWeight: '700', color: colors.text, letterSpacing: -0.4 },
-  startHint: { fontSize: 10, color: colors.textDim, lineHeight: 15, marginTop: 2 },
+  startLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, color: c.textFaint },
+  startValue: { fontSize: 17, fontWeight: '700', color: c.text, letterSpacing: -0.4 },
+  startHint: { fontSize: 10, color: c.textDim, lineHeight: 15, marginTop: 2 },
   startButton: { paddingHorizontal: 16, paddingVertical: 11 },
   progressCard: {
     marginTop: 16,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 18,
     gap: 12,
   },
   progressHead: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
-  progressEyebrow: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2, color: colors.textFaint },
+  progressEyebrow: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2, color: c.textFaint },
   progressNumber: {
     fontSize: 40,
     lineHeight: 44,
     fontWeight: '800',
     letterSpacing: -2,
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
     marginTop: 2,
   },
-  progressTotal: { fontSize: 18, color: colors.textFaint, letterSpacing: -0.5 },
+  progressTotal: { fontSize: 18, color: c.textFaint, letterSpacing: -0.5 },
   progressRight: { alignItems: 'flex-end', gap: 2 },
   progressDone: {
     fontSize: 20,
     fontWeight: '800',
-    color: colors.accent,
+    color: c.accent,
     fontVariant: ['tabular-nums'],
     letterSpacing: -0.6,
   },
-  progressDoneLabel: { fontSize: 10, color: colors.textFaint },
-  bar: { height: 6, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.accent },
-  progressFootnote: { fontSize: 10, color: colors.textFaint },
+  progressDoneLabel: { fontSize: 10, color: c.textFaint },
+  bar: { height: 6, borderRadius: radius.pill, backgroundColor: c.surfaceAlt, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: radius.pill, backgroundColor: c.accent },
+  progressFootnote: { fontSize: 10, color: c.textFaint },
   nextCard: {
     flexDirection: 'row',
     gap: 12,
     marginTop: 16,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: c.bgElevated,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.accentLine,
+    borderColor: c.accentLine,
     padding: 16,
   },
   nextIcon: {
     width: 36,
     height: 36,
     borderRadius: radius.pill,
-    backgroundColor: colors.accent,
+    backgroundColor: c.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   nextBody: { flex: 1, gap: 2 },
-  nextEyebrow: { fontSize: 9, fontWeight: '700', letterSpacing: 1.1, color: colors.accent },
-  nextTitle: { fontSize: 14, fontWeight: '700', color: colors.text, marginTop: 1 },
-  nextHint: { fontSize: 11, color: colors.textDim, lineHeight: 16, marginTop: 2 },
+  nextEyebrow: { fontSize: 9, fontWeight: '700', letterSpacing: 1.1, color: c.accent },
+  nextTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginTop: 1 },
+  nextHint: { fontSize: 11, color: c.textDim, lineHeight: 16, marginTop: 2 },
   weekCard: {
     marginTop: 10,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     overflow: 'hidden',
   },
-  weekCardCurrent: { borderColor: colors.accentLine },
+  weekCardCurrent: { borderColor: c.accentLine },
   weekHead: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   weekBadge: {
     width: 30,
     height: 30,
     borderRadius: radius.sm,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
   weekBadgeText: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
   weekInfo: { flex: 1, gap: 2 },
-  weekTitle: { fontSize: 13, fontWeight: '700', color: colors.text },
-  weekHint: { fontSize: 10, color: colors.textFaint },
+  weekTitle: { fontSize: 13, fontWeight: '700', color: c.text },
+  weekHint: { fontSize: 10, color: c.textFaint },
   currentTag: {
     fontSize: 8,
     fontWeight: '800',
     letterSpacing: 0.8,
-    color: colors.accent,
-    backgroundColor: colors.accentSoft,
+    color: c.accent,
+    backgroundColor: c.accentSoft,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: radius.pill,
@@ -437,30 +450,30 @@ const styles = StyleSheet.create({
   },
   sessionList: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
     paddingHorizontal: 14,
     paddingVertical: 4,
   },
   sessionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
   sessionBody: { flex: 1, gap: 2 },
   sessionTitleLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sessionTitle: { fontSize: 12, fontWeight: '600', color: colors.text, flexShrink: 1 },
-  sessionTitleDone: { color: colors.textDim, textDecorationLine: 'line-through' },
+  sessionTitle: { fontSize: 12, fontWeight: '600', color: c.text, flexShrink: 1 },
+  sessionTitleDone: { color: c.textDim, textDecorationLine: 'line-through' },
   sessionKind: {
     fontSize: 8,
     fontWeight: '700',
-    color: colors.textFaint,
+    color: c.textFaint,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
-  sessionDetail: { fontSize: 10, color: colors.textFaint, lineHeight: 14 },
+  sessionDetail: { fontSize: 10, color: c.textFaint, lineHeight: 14 },
   sessionRight: { alignItems: 'flex-end', gap: 1 },
   sessionKm: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
-  sessionDay: { fontSize: 9, color: colors.textFaint },
-  footnote: { fontSize: 10, color: colors.textFaint, lineHeight: 16, marginTop: 20 },
+  sessionDay: { fontSize: 9, color: c.textFaint },
+  footnote: { fontSize: 10, color: c.textFaint, lineHeight: 16, marginTop: 20 },
 });

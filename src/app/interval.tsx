@@ -16,13 +16,16 @@ import {
   totalDurationS,
   type IntervalStep,
 } from '@/lib/interval';
-import { colors, radius } from '@/lib/theme';
+import { radius, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 
 const RING_SIZE = 230;
 const RING_RADIUS = 100;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 export default function IntervalScreen() {
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   useKeepAwake();
   const router = useRouter();
 
@@ -83,7 +86,7 @@ export default function IntervalScreen() {
   const remainingS = phase ? phase.remainingS : totalS;
   const phaseTotalS = phase ? phase.step.durationS : 1;
   const phaseDoneRatio = phase ? 1 - remainingS / phaseTotalS : 0;
-  const accent = phase ? phaseColor(phase.step.kind) : colors.accent;
+  const accent = phase ? phaseColor(phase.step.kind, palette) : palette.accent;
   const nextStep = phase ? steps[phase.index + 1] : null;
 
   const toggle = () => {
@@ -130,7 +133,7 @@ export default function IntervalScreen() {
               cx={RING_SIZE / 2}
               cy={RING_SIZE / 2}
               r={RING_RADIUS}
-              stroke={colors.surfaceAlt}
+              stroke={palette.surfaceAlt}
               strokeWidth={10}
               fill="none"
             />
@@ -151,7 +154,7 @@ export default function IntervalScreen() {
             <Text style={styles.phaseLabel}>
               {finished ? 'HOÀN THÀNH' : (phase?.step.label ?? 'Sẵn sàng').toUpperCase()}
             </Text>
-            <Text style={[styles.clockNumber, { color: finished ? colors.accent : colors.text }]}>
+            <Text style={[styles.clockNumber, { color: finished ? palette.accent : palette.text }]}>
               {formatDuration(finished ? 0 : remainingS)}
             </Text>
             <Text style={styles.clockHint}>
@@ -209,9 +212,9 @@ export default function IntervalScreen() {
                   pressed && { opacity: 0.75 },
                 ]}
               >
-                <View style={[styles.presetDot, active && { backgroundColor: colors.accent }]} />
+                <View style={[styles.presetDot, active && { backgroundColor: palette.accent }]} />
                 <View style={styles.presetBody}>
-                  <Text style={[styles.presetName, active && { color: colors.accent }]}>
+                  <Text style={[styles.presetName, active && { color: palette.accent }]}>
                     {preset.name}
                   </Text>
                   <Text style={styles.presetHint}>{preset.hint}</Text>
@@ -219,7 +222,7 @@ export default function IntervalScreen() {
                 <Ionicons
                   name={active ? 'checkmark-circle' : 'ellipse-outline'}
                   size={18}
-                  color={active ? colors.accent : colors.textFaint}
+                  color={active ? palette.accent : palette.textFaint}
                 />
               </Pressable>
             );
@@ -237,12 +240,12 @@ export default function IntervalScreen() {
             <View
               style={[
                 styles.presetDot,
-                presetKey === 'custom' && { backgroundColor: colors.accent },
+                presetKey === 'custom' && { backgroundColor: palette.accent },
               ]}
             />
             <View style={styles.presetBody}>
               <Text
-                style={[styles.presetName, presetKey === 'custom' && { color: colors.accent }]}
+                style={[styles.presetName, presetKey === 'custom' && { color: palette.accent }]}
               >
                 Tự chọn
               </Text>
@@ -251,7 +254,7 @@ export default function IntervalScreen() {
             <Ionicons
               name={presetKey === 'custom' ? 'checkmark-circle' : 'ellipse-outline'}
               size={18}
-              color={presetKey === 'custom' ? colors.accent : colors.textFaint}
+              color={presetKey === 'custom' ? palette.accent : palette.textFaint}
             />
           </Pressable>
         </View>
@@ -283,8 +286,8 @@ export default function IntervalScreen() {
             const active = phase?.index === index && !finished;
             return (
               <View key={`${step.kind}-${index}`} style={[styles.stepRow, active && styles.stepRowActive]}>
-                <View style={[styles.stepBar, { backgroundColor: phaseColor(step.kind) }]} />
-                <Text style={[styles.stepName, active && { color: colors.text }]} numberOfLines={1}>
+                <View style={[styles.stepBar, { backgroundColor: phaseColor(step.kind, palette) }]} />
+                <Text style={[styles.stepName, active && { color: palette.text }]} numberOfLines={1}>
                   {step.label}
                 </Text>
                 <Text style={styles.stepTime}>{formatDuration(step.durationS)}</Text>
@@ -297,10 +300,10 @@ export default function IntervalScreen() {
   );
 }
 
-function phaseColor(kind: IntervalStep['kind']): string {
-  if (kind === 'work') return colors.accent;
-  if (kind === 'rest') return colors.danger;
-  return colors.textFaint;
+function phaseColor(kind: IntervalStep['kind'], c: Palette): string {
+  if (kind === 'work') return c.accentFill;
+  if (kind === 'rest') return c.danger;
+  return c.textFaint;
 }
 
 function Stepper({
@@ -314,6 +317,8 @@ function Stepper({
   onMinus: () => void;
   onPlus: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   return (
     <View style={styles.stepperRow}>
       <Text style={styles.stepperLabel}>{label}</Text>
@@ -324,7 +329,7 @@ function Stepper({
           accessibilityRole="button"
           accessibilityLabel={`Giảm ${label}`}
         >
-          <Ionicons name="remove" size={16} color={colors.text} />
+          <Ionicons name="remove" size={16} color={palette.text} />
         </Pressable>
         <Text style={styles.stepperValue}>{value}</Text>
         <Pressable
@@ -333,22 +338,23 @@ function Stepper({
           accessibilityRole="button"
           accessibilityLabel={`Tăng ${label}`}
         >
-          <Ionicons name="add" size={16} color={colors.text} />
+          <Ionicons name="add" size={16} color={palette.text} />
         </Pressable>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6 },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     letterSpacing: -0.2,
   },
   headerSpacer: { width: 36 },
@@ -362,7 +368,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   clockCenter: { position: 'absolute', alignItems: 'center', gap: 2, width: RING_SIZE - 40 },
-  phaseLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 1.4, color: colors.textDim },
+  phaseLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 1.4, color: c.textDim },
   clockNumber: {
     fontSize: 50,
     lineHeight: 58,
@@ -370,23 +376,23 @@ const styles = StyleSheet.create({
     letterSpacing: -3,
     fontVariant: ['tabular-nums'],
   },
-  clockHint: { fontSize: 11, color: colors.textFaint, textAlign: 'center' },
+  clockHint: { fontSize: 11, color: c.textFaint, textAlign: 'center' },
   totalRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 20 },
-  totalLabel: { fontSize: 11, color: colors.textFaint },
+  totalLabel: { fontSize: 11, color: c.textFaint },
   totalValue: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
   totalBar: {
     flex: 1,
     height: 5,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     overflow: 'hidden',
   },
-  totalFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.accent },
+  totalFill: { height: '100%', borderRadius: radius.pill, backgroundColor: c.accent },
   controls: { flexDirection: 'row', gap: 10, marginTop: 20 },
   controlButton: { flex: 1 },
   spaced: { marginTop: 28 },
@@ -395,23 +401,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 13,
   },
-  presetRowActive: { borderColor: colors.accentLine, backgroundColor: colors.bgElevated },
-  presetDot: { width: 7, height: 7, borderRadius: radius.pill, backgroundColor: colors.borderStrong },
+  presetRowActive: { borderColor: c.accentLine, backgroundColor: c.bgElevated },
+  presetDot: { width: 7, height: 7, borderRadius: radius.pill, backgroundColor: c.borderStrong },
   presetBody: { flex: 1, gap: 2 },
-  presetName: { fontSize: 13, fontWeight: '700', color: colors.text },
-  presetHint: { fontSize: 10, color: colors.textFaint },
+  presetName: { fontSize: 13, fontWeight: '700', color: c.text },
+  presetHint: { fontSize: 10, color: c.textFaint },
   customCard: {
     marginTop: 12,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 6,
   },
   stepperRow: {
@@ -421,13 +427,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 10,
   },
-  stepperLabel: { fontSize: 13, color: colors.text },
+  stepperLabel: { fontSize: 13, color: c.text },
   stepperControls: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepperButton: {
     width: 30,
     height: 30,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -436,10 +442,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 15,
     fontWeight: '700',
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
-  customHint: { fontSize: 10, color: colors.textFaint, paddingHorizontal: 10, paddingBottom: 8, lineHeight: 15 },
+  customHint: { fontSize: 10, color: c.textFaint, paddingHorizontal: 10, paddingBottom: 8, lineHeight: 15 },
   stepList: { marginTop: 12, gap: 4 },
   stepRow: {
     flexDirection: 'row',
@@ -449,12 +455,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: radius.sm,
   },
-  stepRowActive: { backgroundColor: colors.surface },
+  stepRowActive: { backgroundColor: c.surface },
   stepBar: { width: 3, height: 16, borderRadius: radius.pill },
-  stepName: { flex: 1, fontSize: 12, color: colors.textDim },
+  stepName: { flex: 1, fontSize: 12, color: c.textDim },
   stepTime: {
     fontSize: 11,
-    color: colors.textFaint,
+    color: c.textFaint,
     fontVariant: ['tabular-nums'],
   },
 });

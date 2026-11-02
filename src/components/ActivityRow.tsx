@@ -1,9 +1,11 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { formatDayLabel, formatDuration, formatKmDecimal, formatPace, formatTime } from '@/lib/format';
+import { formatDayLabel, formatDuration, formatTime } from '@/lib/format';
+import { useUnit } from '@/hooks/useUnit';
 import { feelingEmoji } from '@/lib/feeling';
 import { runTypeShort } from '@/lib/runType';
-import { colors } from '@/lib/theme';
+import { type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 import type { ActivitySummary } from '@/lib/types';
 import { RouteShape } from './RouteShape';
 
@@ -13,12 +15,15 @@ type Props = {
 };
 
 export function ActivityRow({ activity, onPress }: Props) {
+  const u = useUnit();
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       accessibilityRole="button"
-      accessibilityLabel={`${activity.title}, ${formatKmDecimal(activity.distanceM)} km`}
+      accessibilityLabel={`${activity.title}, ${u.dist(activity.distanceM)} ${u.label}`}
     >
       <View style={styles.left}>
         <View style={styles.metaRow}>
@@ -34,12 +39,12 @@ export function ActivityRow({ activity, onPress }: Props) {
         </View>
 
         <View style={styles.distanceLine}>
-          <Text style={styles.distance}>{formatKmDecimal(activity.distanceM)}</Text>
-          <Text style={styles.unit}>km</Text>
+          <Text style={styles.distance}>{u.dist(activity.distanceM)}</Text>
+          <Text style={styles.unit}>{u.label}</Text>
         </View>
 
         <Text style={styles.sub}>
-          {formatDuration(activity.durationS)} · {formatPace(activity.avgPaceS)}/km
+          {formatDuration(activity.durationS)} · {u.pace(activity.avgPaceS)}{u.paceLabel}
         </Text>
       </View>
 
@@ -50,7 +55,7 @@ export function ActivityRow({ activity, onPress }: Props) {
             width={78}
             height={52}
             strokeWidth={1.6}
-            color={colors.textFaint}
+            color={palette.textFaint}
           />
         ) : null}
       </View>
@@ -58,13 +63,14 @@ export function ActivityRow({ activity, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 18,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: c.border,
     gap: 12,
   },
   pressed: { opacity: 0.6 },
@@ -75,17 +81,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 1,
     textTransform: 'uppercase',
-    color: colors.textFaint,
+    color: c.textFaint,
   },
   feeling: { fontSize: 13 },
   runType: {
     fontSize: 9,
     fontWeight: '700',
-    color: colors.accent,
+    color: c.accent,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: c.accentSoft,
     overflow: 'hidden',
   },
   distanceLine: { flexDirection: 'row', alignItems: 'baseline', gap: 5 },
@@ -93,14 +99,14 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: '800',
     letterSpacing: -1.2,
-    color: colors.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
-  unit: { fontSize: 13, fontWeight: '600', color: colors.textDim },
+  unit: { fontSize: 13, fontWeight: '600', color: c.textDim },
   sub: {
     marginTop: 2,
     fontSize: 13,
-    color: colors.textDim,
+    color: c.textDim,
     fontVariant: ['tabular-nums'],
   },
   thumb: { width: 78, height: 52, alignItems: 'center', justifyContent: 'center' },

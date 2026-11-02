@@ -2,12 +2,14 @@ import { elevationGain, haversine } from './geo';
 import type { Split, TrackPoint } from './types';
 
 /**
- * Split the route into 1 km segments, interpolating the exact time the runner
- * crossed each kilometer mark. The trailing partial kilometer is included when
- * it is longer than 100 m.
+ * Split the route into equal segments (1 km by default, or 1609.344 m for
+ * miles), interpolating the exact time the runner crossed each mark. The
+ * trailing partial segment is included when it is longer than 10% of a full
+ * segment.
  */
-export function computeSplits(points: TrackPoint[]): Split[] {
+export function computeSplits(points: TrackPoint[], splitMeters = 1000): Split[] {
   if (points.length < 2) return [];
+  const seg = splitMeters > 0 ? splitMeters : 1000;
 
   const splits: Split[] = [];
   let segStartIdx = 0;
@@ -20,16 +22,16 @@ export function computeSplits(points: TrackPoint[]): Split[] {
     cum += stepDist;
 
     let guard = 0;
-    while (cum >= (splits.length + 1) * 1000 && guard++ < 20) {
-      const target = (splits.length + 1) * 1000;
+    while (cum >= (splits.length + 1) * seg && guard++ < 20) {
+      const target = (splits.length + 1) * seg;
       const ratio = stepDist > 0 ? (target - before) / stepDist : 1;
       const crossTime = points[i - 1].t + ratio * (points[i].t - points[i - 1].t);
       const durationS = (crossTime - segStartTime) / 1000;
       splits.push({
         km: splits.length + 1,
-        distanceM: 1000,
+        distanceM: seg,
         durationS,
-        paceSPerKm: durationS,
+        paceSPerKm: durationS / (seg / 1000),
         elevGainM: elevationGain(points.slice(segStartIdx, i + 1)),
       });
       segStartIdx = i;
@@ -38,8 +40,8 @@ export function computeSplits(points: TrackPoint[]): Split[] {
   }
 
   const last = points[points.length - 1];
-  const remainder = cum - splits.length * 1000;
-  if (remainder > 100) {
+  const remainder = cum - splits.length * seg;
+  if (remainder > seg * 0.1) {
     const durationS = (last.t - segStartTime) / 1000;
     if (durationS > 0) {
       splits.push({

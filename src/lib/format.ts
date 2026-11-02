@@ -28,8 +28,16 @@ export function formatKm(meters: number, digits = 2): string {
 
 export type DistanceUnit = 'km' | 'mi';
 
+export const METRES_PER_MILE = 1609.344;
+const FEET_PER_METRE = 3.28084;
+
 export function metersToUnit(meters: number, unit: DistanceUnit): number {
-  return unit === 'mi' ? meters / 1609.344 : meters / 1000;
+  return unit === 'mi' ? meters / METRES_PER_MILE : meters / 1000;
+}
+
+/** Inverse of `metersToUnit`: a value in km or miles -> metres. */
+export function unitToMeters(value: number, unit: DistanceUnit): number {
+  return unit === 'mi' ? value * METRES_PER_MILE : value * 1000;
 }
 
 export function unitLabel(unit: DistanceUnit): string {
@@ -53,6 +61,36 @@ export function formatKmShort(meters: number): string {
 
 export function formatElevation(meters: number): string {
   return `${Math.round(meters)}`;
+}
+
+/**
+ * Seconds per km -> pace string in the chosen unit: 5'32" per km, 8'54" per
+ * mile. Always stored as seconds-per-km so records and splits stay comparable.
+ */
+export function formatPaceFor(
+  secondsPerKm: number | null | undefined,
+  unit: DistanceUnit,
+): string {
+  if (!secondsPerKm || !isFinite(secondsPerKm) || secondsPerKm <= 0) return '--';
+  const perUnit = unit === 'mi' ? secondsPerKm * (METRES_PER_MILE / 1000) : secondsPerKm;
+  const s = Math.round(perUnit);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}'${pad(sec)}"`;
+}
+
+/** "/km" or "/mi" — the suffix shown after a pace. */
+export function paceUnitLabel(unit: DistanceUnit): string {
+  return unit === 'mi' ? '/mi' : '/km';
+}
+
+/** Elevation in metres or feet, without the unit suffix. */
+export function formatElevationFor(meters: number, unit: DistanceUnit): string {
+  return `${Math.round(unit === 'mi' ? meters * FEET_PER_METRE : meters)}`;
+}
+
+export function elevationUnitLabel(unit: DistanceUnit): string {
+  return unit === 'mi' ? 'ft' : 'm';
 }
 
 export function startOfDay(ms: number): number {

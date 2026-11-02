@@ -6,14 +6,11 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#08090A",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.chaybo.app",
-      "infoPlist": {
-        "UIStatusBarStyle": "UIStatusBarStyleLightContent"
-      }
+      "bundleIdentifier": "com.chaybo.app"
     },
     "android": {
       "package": "com.chaybo.app",
@@ -51,7 +48,11 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "chaybo dùng vị trí của bạn để ghi lại lộ trình và quãng đường chạy."
+          "locationWhenInUsePermission": "chaybo dùng vị trí của bạn để ghi lại lộ trình và quãng đường chạy.",
+          "locationAlwaysAndWhenInUsePermission": "chaybo dùng vị trí của bạn ngay cả khi app chạy nền để ghi lại buổi chạy.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       "expo-font"

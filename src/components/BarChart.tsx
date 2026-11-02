@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 
-import { colors } from '@/lib/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 type Props = {
   /** Bar heights, oldest first. */
@@ -19,13 +19,15 @@ export function BarChart({
   values,
   labels,
   height = 96,
-  color = colors.accent,
+  color,
   highlightIndex,
   gap = 6,
 }: Props) {
+  const { colors } = useTheme();
   const [width, setWidth] = useState(0);
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
 
+  const barColor = color ?? colors.accentFill;
   const count = Math.max(values.length, 1);
   const max = Math.max(...values, 1);
   const activeIndex = highlightIndex ?? values.length - 1;
@@ -50,7 +52,7 @@ export function BarChart({
                 width={barWidth}
                 height={h}
                 rx={Math.min(4, barWidth / 2)}
-                fill={isActive ? color : colors.surfaceAlt}
+                fill={isActive ? barColor : colors.surfaceAlt}
                 opacity={value > 0 ? 1 : 0.55}
               />
             );

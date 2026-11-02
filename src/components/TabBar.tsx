@@ -3,7 +3,8 @@ import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius } from '@/lib/theme';
+import { radius, type Palette } from '@/lib/theme';
+import { useThemedStyles, useTheme } from '@/hooks/useTheme';
 
 const LABELS: Record<string, string> = {
   index: 'Lịch sử',
@@ -22,6 +23,8 @@ const ICONS: Record<
 const TAB_ORDER = ['index', 'stats'];
 
 export function TabBar({ state, navigateToTab, insets }: BottomTabBarProps) {
+  const styles = useThemedStyles(createStyles);
+  const palette = useTheme().colors;
   const focusedKey = state.routes[state.index]?.key;
   const routes = [...state.routes].sort(
     (a, b) => TAB_ORDER.indexOf(a.name) - TAB_ORDER.indexOf(b.name),
@@ -45,7 +48,7 @@ export function TabBar({ state, navigateToTab, insets }: BottomTabBarProps) {
         <Ionicons
           name={focused ? icons.active : icons.idle}
           size={22}
-          color={focused ? colors.accent : colors.textFaint}
+          color={focused ? palette.accent : palette.textFaint}
         />
         <Text style={[styles.label, focused && styles.labelActive]}>{label}</Text>
       </Pressable>
@@ -63,7 +66,7 @@ export function TabBar({ state, navigateToTab, insets }: BottomTabBarProps) {
         accessibilityLabel="Bắt đầu ghi buổi chạy"
       >
         <View style={styles.centerButton}>
-          <Ionicons name="play" size={26} color={colors.bg} style={styles.playIcon} />
+          <Ionicons name="play" size={26} color={palette.bg} style={styles.playIcon} />
         </View>
         <Text style={styles.centerLabel}>Chạy</Text>
       </Pressable>
@@ -73,14 +76,15 @@ export function TabBar({ state, navigateToTab, insets }: BottomTabBarProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingTop: 10,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: c.bgElevated,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
   },
   slot: {
     flex: 1,
@@ -92,9 +96,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.4,
-    color: colors.textFaint,
+    color: c.textFaint,
   },
-  labelActive: { color: colors.accent },
+  labelActive: { color: c.accent },
   centerSlot: {
     flex: 1,
     alignItems: 'center',
@@ -105,12 +109,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: radius.pill,
-    backgroundColor: colors.accent,
+    backgroundColor: c.accent,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
-    borderColor: colors.bgElevated,
-    shadowColor: colors.accent,
+    borderColor: c.bgElevated,
+    shadowColor: c.accent,
     shadowOpacity: 0.35,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -121,6 +125,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.4,
-    color: colors.textDim,
+    color: c.textDim,
   },
 });
