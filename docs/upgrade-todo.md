@@ -32,7 +32,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 - ⏳ 23. Xu hướng VO2max theo thời gian
 - ✅ 24. Phân vùng pace (easy/moderate/hard) (nhãn)
 - ⏳ 25. Biểu đồ độ cao chi tiết
-- ⏳ 26. Kỷ lục theo tháng/năm
+- ✅ 26. Kỷ lục theo tháng/năm (tháng này)
 - ⏳ 27. Heatmap theo giờ trong ngày
 - ⏳ 28. Phân tích thời tiết vs pace
 - ✅ 29. Tải tập luyện ATL/CTL/TSB (đã có)
