@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
+import { Pedometer } from 'expo-sensors';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -30,6 +31,7 @@ export type FinishedRun = {
   calories: number;
   route: TrackPoint[];
   splits: Split[];
+  cadence: number | null;
 };
 
 export type RecordingLap = {
@@ -54,6 +56,10 @@ export type RecordingState = {
   laps: RecordingLap[];
   /** True when this session is also tracked in the background. */
   background: boolean;
+  /** Steps per minute (cadence) estimate. */
+  cadence: number | null;
+  /** GPS accuracy in metres. */
+  accuracy: number | null;
 };
 
 const INITIAL: RecordingState = {
@@ -69,6 +75,8 @@ const INITIAL: RecordingState = {
   laps: [],
   /** True when this session is also tracked in the background. */
   background: false,
+  cadence: null,
+  accuracy: null,
 };
 
 export type UseRecordingOptions = { voiceCoach?: boolean; autoPauseSeconds?: number };
@@ -104,6 +112,9 @@ export function useRecording(options?: UseRecordingOptions) {
   const autoPauseFnRef = useRef<() => void>(() => {});
   const autoResumeFnRef = useRef<() => void>(() => {});
   const backgroundRef = useRef(false);
+  const treadmillRef = useRef(false);
+  const pedometerSubRef = useRef<{ remove: () => void } | null>(null);
+  const stepCountRef = useRef(0);
   const voiceCoachRef = useRef(options?.voiceCoach ?? false);
   const lastAnnouncedKmRef = useRef(0);
   const autoPauseThresholdMsRef = useRef((options?.autoPauseSeconds ?? 20) * 1000);
@@ -123,6 +134,8 @@ export function useRecording(options?: UseRecordingOptions) {
   const stopWatcher = useCallback(() => {
     subscriptionRef.current?.remove();
     subscriptionRef.current = null;
+    pedometerSubRef.current?.remove();
+    pedometerSubRef.current = null;
     setBackgroundLocationListener(null);
     void stopBackgroundLocation();
     backgroundRef.current = false;
@@ -203,12 +216,19 @@ export function useRecording(options?: UseRecordingOptions) {
 
     const instantPace = paceFromSpeed(coords.speed);
 
+    const cadence =
+      stepCountRef.current > 0 && movingSeconds() > 0
+        ? Math.round((stepCountRef.current / movingSeconds()) * 60)
+        : null;
+
     setState((prev) => ({
       ...prev,
       points: pointsRef.current,
       distanceM: distanceRef.current,
       movingS: movingSeconds(),
       currentPaceS: instantPace,
+      cadence,
+      accuracy: typeof coords.accuracy === 'number' ? coords.accuracy : null,
     }));
   }, [movingSeconds]);
 
@@ -261,14 +281,19 @@ export function useRecording(options?: UseRecordingOptions) {
     }, 500);
   }, [clearTimers, movingSeconds]);
 
-  const start = useCallback(async () => {
-    const permission = await Location.requestForegroundPermissionsAsync();
-    if (permission.status !== 'granted') {
-      setState((prev) => ({
-        ...prev,
-        error: 'Cần quyền truy cập vị trí để ghi lại buổi chạy.',
-      }));
-      return false;
+  const start = useCallback(async (treadmill?: boolean) => {
+    const isTreadmill = !!treadmill;
+    treadmillRef.current = isTreadmill;
+
+    if (!isTreadmill) {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== 'granted') {
+        setState((prev) => ({
+          ...prev,
+          error: 'Cần quyền truy cập vị trí để ghi lại buổi chạy.',
+        }));
+        return false;
+      }
     }
 
     pointsRef.current = [];
@@ -293,7 +318,7 @@ export function useRecording(options?: UseRecordingOptions) {
     statusRef.current = 'recording';
 
     // Try to enable background tracking. This may prompt for "Always" permission.
-    const background = await startBackgroundLocation().catch(() => false);
+    const background = isTreadmill ? false : await startBackgroundLocation().catch(() => false);
     backgroundRef.current = background;
 
     setState({
@@ -306,7 +331,21 @@ export function useRecording(options?: UseRecordingOptions) {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     void activateKeepAwakeAsync(KEEP_AWAKE_TAG);
 
-    if (background) {
+    stepCountRef.current = 0;
+    try {
+      const available = await Pedometer.isAvailableAsync();
+      if (available) {
+        pedometerSubRef.current = Pedometer.watchStepCount((result) => {
+          stepCountRef.current += result.steps ?? 0;
+        });
+      }
+    } catch {
+      // pedometer unavailable
+    }
+
+    if (isTreadmill) {
+      // No GPS; just timing. Distance entered manually at finish.
+    } else if (background) {
       setBackgroundLocationListener((locations) => {
         locations.forEach((location) => onLocation(location));
       });
@@ -395,6 +434,10 @@ export function useRecording(options?: UseRecordingOptions) {
     const route = pointsRef.current;
     const distanceM = distanceRef.current;
     const splits = computeSplits(route);
+    const cadence =
+      stepCountRef.current > 0 && durationS > 0
+        ? Math.round((stepCountRef.current / durationS) * 60)
+        : null;
 
     statusRef.current = 'idle';
     pausedAtRef.current = null;
@@ -430,6 +473,7 @@ export function useRecording(options?: UseRecordingOptions) {
       calories: estimateCalories(distanceM, weightKg),
       route,
       splits,
+      cadence,
     };
   }, [clearTimers, movingSeconds, stopWatcher]);
 
@@ -450,6 +494,7 @@ export function useRecording(options?: UseRecordingOptions) {
     lastDistanceRef.current = 0;
     lastDistanceTimeRef.current = null;
     backgroundRef.current = false;
+    treadmillRef.current = false;
     try {
       Speech.stop();
     } catch {

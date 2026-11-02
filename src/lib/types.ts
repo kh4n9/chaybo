@@ -46,6 +46,9 @@ export type ActivityRow = {
   favorite: number;
   photos: string;
   tags: string;
+  cadence: number | null;
+  avg_hr: number | null;
+  treadmill: number;
   created_at: number;
 };
 
@@ -78,6 +81,9 @@ export type Activity = ActivitySummary & {
   favorite: boolean;
   photos: string[];
   tags: string;
+  cadence: number | null;
+  avgHr: number | null;
+  treadmill: boolean;
   route: TrackPoint[];
   splits: Split[];
 };

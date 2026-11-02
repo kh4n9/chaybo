@@ -205,6 +205,9 @@ function sanitizeActivity(value: unknown, weightKg: number): Activity | null {
       ? value.photos.filter((p): p is string => typeof p === 'string').slice(0, 12)
       : [],
     tags: typeof value.tags === 'string' ? value.tags.slice(0, 200) : '',
+    cadence: finiteNumber(value.cadence),
+    avgHr: finiteNumber(value.avgHr),
+    treadmill: value.treadmill === true || value.treadmill === 'true' || value.treadmill === 1 || value.treadmill === '1',
     route,
     preview: makePreview(route),
     splits,

@@ -85,6 +85,9 @@ function toActivity(row: ActivityRow): Activity {
     notes: row.notes ?? '',
     photos: parseJson<string[]>(row.photos, []),
     tags: row.tags ?? '',
+    cadence: row.cadence ?? null,
+    avgHr: row.avg_hr ?? null,
+    treadmill: row.treadmill === 1,
     route: parseJson<TrackPoint[]>(row.route, []),
     preview: parseJson<TrackPoint[]>(row.preview, []),
     splits: parseJson<Split[]>(row.splits, []),
@@ -111,7 +114,7 @@ export async function getActivity(db: SQLiteDatabase, id: string): Promise<Activ
   return row ? toActivity(row) : null;
 }
 
-export type SaveActivityInput = Omit<Activity, 'id' | 'title' | 'preview' | 'notes' | 'feeling' | 'runType' | 'weather' | 'gearId' | 'favorite' | 'photos' | 'tags'> & {
+export type SaveActivityInput = Omit<Activity, 'id' | 'title' | 'preview' | 'notes' | 'feeling' | 'runType' | 'weather' | 'gearId' | 'favorite' | 'photos' | 'tags' | 'cadence' | 'avgHr' | 'treadmill'> & {
   id?: string;
   title?: string;
   notes?: string;
@@ -122,6 +125,9 @@ export type SaveActivityInput = Omit<Activity, 'id' | 'title' | 'preview' | 'not
   favorite?: boolean;
   photos?: string[];
   tags?: string;
+  cadence?: number | null;
+  avgHr?: number | null;
+  treadmill?: boolean;
 };
 
 export function newActivityId(): string {
@@ -139,8 +145,9 @@ export async function saveActivity(
     `INSERT OR REPLACE INTO activities
       (id, title, started_at, ended_at, duration_s, elapsed_s, distance_m,
        avg_pace_s, best_pace_s, elev_gain_m, calories, route, preview, splits,
-       notes, feeling, run_type, weather, gear_id, favorite, photos, tags, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       notes, feeling, run_type, weather, gear_id, favorite, photos, tags,
+       cadence, avg_hr, treadmill, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     input.title ?? 'Buổi chạy',
     input.startedAt,
@@ -163,6 +170,9 @@ export async function saveActivity(
     input.favorite ? 1 : 0,
     JSON.stringify(input.photos ?? []),
     (input.tags ?? '').slice(0, 200),
+    input.cadence ?? null,
+    input.avgHr ?? null,
+    input.treadmill ? 1 : 0,
     now,
   );
 
@@ -234,6 +244,14 @@ export async function updateActivityTags(
   tags: string,
 ): Promise<void> {
   await db.runAsync('UPDATE activities SET tags = ? WHERE id = ?', tags.slice(0, 200), id);
+}
+
+export async function updateActivityAvgHr(
+  db: SQLiteDatabase,
+  id: string,
+  avgHr: number | null,
+): Promise<void> {
+  await db.runAsync('UPDATE activities SET avg_hr = ? WHERE id = ?', avgHr, id);
 }
 
 export async function getPreviousActivity(

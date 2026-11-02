@@ -37,6 +37,7 @@ import {
   updateActivityTitle,
   updateActivityPhotos,
   updateActivityTags,
+  updateActivityAvgHr,
 } from '@/db/activities';
 import { listGear, recomputeGearDistance, type Gear } from '@/db/gear';
 import { buildGpx, fileStamp, shareTextFile } from '@/lib/export';
@@ -80,6 +81,8 @@ export default function ActivityDetailScreen() {
   const [feelingDraft, setFeelingDraft] = useState<Feeling | null>(null);
   const [tagsDraft, setTagsDraft] = useState('');
   const [savingTags, setSavingTags] = useState(false);
+  const [hrDraft, setHrDraft] = useState('');
+  const [savingHr, setSavingHr] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   const [cardVariant, setCardVariant] = useState<ShareCardVariant>('classic');
   const [runTypeDraft, setRunTypeDraft] = useState<RunType | null>(null);
@@ -99,6 +102,7 @@ export default function ActivityDetailScreen() {
       setNotesDraft(found?.notes ?? '');
       setFeelingDraft(found?.feeling ?? null);
       setTagsDraft(found?.tags ?? '');
+      setHrDraft(found?.avgHr != null ? String(found.avgHr) : '');
       setRunTypeDraft(found?.runType ?? null);
       if (found) {
         const prev = await getPreviousActivity(db, found.startedAt);
@@ -241,6 +245,26 @@ export default function ActivityDetailScreen() {
       Alert.alert('Có lỗi', 'Không lưu được nhãn.');
     } finally {
       setSavingTags(false);
+    }
+  };
+
+  const saveHr = async () => {
+    if (!activity) return;
+    setSavingHr(true);
+    try {
+      const v = hrDraft.trim();
+      const hr = v === '' ? null : Number(v);
+      if (hr != null && (!Number.isFinite(hr) || hr < 30 || hr > 250)) {
+        Alert.alert('Không hợp lệ', 'Nhập nhịp tim từ 30 đến 250 bpm.');
+        return;
+      }
+      await updateActivityAvgHr(db, activity.id, hr);
+      setActivity((prev) => (prev ? { ...prev, avgHr: hr } : prev));
+      setHrDraft(hr != null ? String(hr) : '');
+    } catch {
+      Alert.alert('Có lỗi', 'Không lưu được nhịp tim.');
+    } finally {
+      setSavingHr(false);
     }
   };
 
@@ -413,6 +437,8 @@ export default function ActivityDetailScreen() {
         <View style={styles.secondaryRow}>
           <Meta label="Calo" value={`${activity.calories} kcal`} />
           <Meta label="Pace tốt nhất" value={`${u.pace(activity.bestPaceS)}${u.paceLabel}`} />
+          <Meta label="Nhịp bước" value={activity.cadence ? `${activity.cadence} spm` : '--'} />
+          <Meta label="Nhịp tim TB" value={activity.avgHr ? `${activity.avgHr} bpm` : '--'} />
           <Meta
             label="Vùng pace"
             value={
@@ -766,6 +792,32 @@ export default function ActivityDetailScreen() {
               onPress={saveNotes}
               disabled={savingNotes || !notesDirty}
               style={styles.notesButton}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Eyebrow>Nhịp tim trung bình</Eyebrow>
+            <Text style={styles.sectionHint}>bpm (nhập thủ công)</Text>
+          </View>
+          <View style={styles.hrRow}>
+            <TextInput
+              value={hrDraft}
+              onChangeText={setHrDraft}
+              placeholder="ví dụ: 152"
+              placeholderTextColor={palette.textFaint}
+              style={styles.hrInput}
+              keyboardType="numeric"
+              maxLength={3}
+              selectionColor={palette.accent}
+            />
+            <Button
+              label={savingHr ? 'Đang lưu...' : 'Lưu'}
+              variant={hrDraft !== String(activity.avgHr ?? '') ? 'primary' : 'ghost'}
+              onPress={saveHr}
+              disabled={savingHr}
+              style={styles.hrButton}
             />
           </View>
         </View>
@@ -1152,6 +1204,20 @@ const createStyles = (c: Palette) =>
     borderColor: c.accentLine,
   },
   tagChipLabel: { fontSize: 11, fontWeight: '600', color: c.accent },
+  hrRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  hrInput: {
+    flex: 1,
+    backgroundColor: c.bgElevated,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.border,
+    color: c.text,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontVariant: ['tabular-nums'],
+  },
+  hrButton: { paddingHorizontal: 18, paddingVertical: 10 },
   photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   photoWrap: { width: 88, height: 88, borderRadius: radius.sm, overflow: 'hidden', position: 'relative' },
   photo: { width: '100%', height: '100%' },

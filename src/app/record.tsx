@@ -40,6 +40,7 @@ export default function RecordScreen() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [weather, setWeather] = useState<string | null>(null);
   const [showHydration, setShowHydration] = useState(false);
+  const [treadmill, setTreadmill] = useState(false);
   const lastHydrationRef = useRef(0);
 
   const isActive = rec.status !== 'idle';
@@ -119,7 +120,7 @@ export default function RecordScreen() {
     } catch {
       // Weather is optional.
     }
-    const ok = await rec.start();
+    const ok = await rec.start(treadmill);
     if (!ok) {
       Alert.alert(
         'Không thể bắt đầu',
@@ -172,8 +173,30 @@ export default function RecordScreen() {
     );
   };
 
+  const finishRun = async (distanceOverride?: number) => {
+    const run = rec.stop(settings.weightKg);
+    if (!run) return;
+    if (distanceOverride != null) run.distanceM = distanceOverride;
+    setSaving(true);
+    try {
+      const id = await saveActivity(db, {
+        ...run,
+        title: autoTitle(run.startedAt),
+        weather,
+        treadmill,
+      });
+      rec.reset();
+      setTreadmill(false);
+      router.replace({ pathname: '/activity/[id]', params: { id } });
+    } catch {
+      Alert.alert('Không lưu được', 'Có lỗi khi ghi dữ liệu. Vui lòng thử lại.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const onFinish = () => {
-    if (rec.distanceM < 50) {
+    if (!treadmill && rec.distanceM < 50) {
       Alert.alert('Buổi chạy quá ngắn', 'Cần ít nhất 50 m để lưu lại.', [
         { text: 'Tiếp tục', style: 'cancel' },
         {
@@ -184,6 +207,29 @@ export default function RecordScreen() {
       ]);
       return;
     }
+    if (treadmill && rec.distanceM < 50) {
+      Alert.prompt(
+        'Quãng đường chạy máy',
+        'Nhập quãng đường (km) bạn đã chạy trên máy.',
+        [
+          { text: 'Huỷ', style: 'cancel' },
+          {
+            text: 'Lưu',
+            onPress: (value) => {
+              const km = Number(String(value).replace(',', '.'));
+              if (!Number.isFinite(km) || km <= 0) {
+                Alert.alert('Không hợp lệ', 'Nhập số km hợp lệ.');
+                return;
+              }
+              void finishRun(km * 1000);
+            },
+          },
+        ],
+        'plain-text',
+        '5',
+      );
+      return;
+    }
 
     Alert.alert('Kết thúc buổi chạy?', undefined, [
       { text: 'Huỷ', style: 'cancel' },
@@ -191,22 +237,7 @@ export default function RecordScreen() {
         text: 'Kết thúc',
         style: 'destructive',
         onPress: async () => {
-          const run = rec.stop(settings.weightKg);
-          if (!run) return;
-          setSaving(true);
-          try {
-            const id = await saveActivity(db, {
-              ...run,
-              title: autoTitle(run.startedAt),
-              weather,
-            });
-            rec.reset();
-            router.replace({ pathname: '/activity/[id]', params: { id } });
-          } catch {
-            Alert.alert('Không lưu được', 'Có lỗi khi ghi dữ liệu. Vui lòng thử lại.');
-          } finally {
-            setSaving(false);
-          }
+          await finishRun();
         },
       },
     ]);
@@ -262,9 +293,11 @@ export default function RecordScreen() {
               ? rec.points.length === 0
                 ? 'Đang tìm GPS...'
                 : rec.background
-                  ? 'GPS nền đang bật'
-                  : 'GPS ổn định'
-              : 'Chạm để bắt đầu ghi'}
+                  ? `GPS nền · ±${Math.round(rec.accuracy ?? 0)} m`
+                  : `GPS ổn định · ±${Math.round(rec.accuracy ?? 0)} m`
+              : treadmill
+                ? 'Chạy máy — không dùng GPS'
+                : 'Chạm để bắt đầu ghi'}
           </Text>
         </View>
 
@@ -292,14 +325,32 @@ export default function RecordScreen() {
               value={String(Math.floor(u.toUnit(rec.distanceM)))}
             />
           </View>
+          {rec.cadence != null ? (
+            <Text style={styles.cadenceHint}>Nhịp bước: {rec.cadence} spm</Text>
+          ) : null}
 
           {!isActive ? (
-            <Button
-              label="Bắt đầu chạy"
-              icon="play"
-              onPress={onStart}
-              style={styles.startButton}
-            />
+            <>
+              <Pressable
+                onPress={() => setTreadmill((v) => !v)}
+                style={({ pressed }) => [
+                  styles.treadmillToggle,
+                  treadmill && styles.treadmillToggleOn,
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Ionicons name="walk" size={16} color={treadmill ? palette.bg : palette.textDim} />
+                <Text style={[styles.treadmillLabel, treadmill && { color: palette.bg }]}>
+                  {treadmill ? 'Chạy máy (treadmill)' : 'Chạy máy (treadmill) — tắt'}
+                </Text>
+              </Pressable>
+              <Button
+                label="Bắt đầu chạy"
+                icon="play"
+                onPress={onStart}
+                style={styles.startButton}
+              />
+            </>
           ) : (
             <View style={styles.controls}>
               <Pressable
@@ -495,6 +546,21 @@ const createStyles = (c: Palette) =>
     marginHorizontal: 12,
   },
   startButton: { marginTop: 24, paddingVertical: 18 },
+  treadmillToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    backgroundColor: c.bgElevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.border,
+  },
+  treadmillToggleOn: { backgroundColor: c.accentFill, borderColor: c.accentFill },
+  treadmillLabel: { fontSize: 12, fontWeight: '600', color: c.textDim },
+  cadenceHint: { fontSize: 11, color: c.textFaint, textAlign: 'center', marginTop: 6 },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
