@@ -39,8 +39,25 @@ export default function RecordScreen() {
   const [saving, setSaving] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [weather, setWeather] = useState<string | null>(null);
+  const [showHydration, setShowHydration] = useState(false);
+  const lastHydrationRef = useRef(0);
 
   const isActive = rec.status !== 'idle';
+
+  useEffect(() => {
+    if (!isActive) {
+      lastHydrationRef.current = 0;
+      return;
+    }
+    if (rec.movingS - lastHydrationRef.current >= 1200) {
+      lastHydrationRef.current = rec.movingS;
+      setShowHydration(true);
+      const t = setTimeout(() => setShowHydration(false), 8000);
+      return () => clearTimeout(t);
+    }
+  }, [rec.movingS, isActive]);
+
+  // (no-op: banner is gated on isActive in render)
 
   // Centre the map on the runner the first time we get a position.
   useEffect(() => {
@@ -229,6 +246,12 @@ export default function RecordScreen() {
       />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        {isActive && showHydration ? (
+          <View style={styles.hydrationBanner}>
+            <Ionicons name="water" size={16} color={palette.bg} />
+            <Text style={styles.hydrationText}>Uống nước! Bạn đã chạy {Math.floor(rec.movingS / 60)} phút.</Text>
+          </View>
+        ) : null}
         <View style={styles.header}>
           <IconButton icon="close" onPress={onClose} accessibilityLabel="Đóng màn hình ghi" />
 
@@ -389,6 +412,17 @@ const createStyles = (c: Palette) =>
     gap: 10,
     paddingTop: 10,
   },
+  hydrationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#D8FF3E',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  hydrationText: { color: '#08090A', fontSize: 13, fontWeight: '700' },
   headerHint: {
     flex: 1,
     fontSize: 11,

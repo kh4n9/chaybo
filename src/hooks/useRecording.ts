@@ -107,6 +107,9 @@ export function useRecording(options?: UseRecordingOptions) {
   const voiceCoachRef = useRef(options?.voiceCoach ?? false);
   const lastAnnouncedKmRef = useRef(0);
   const autoPauseThresholdMsRef = useRef((options?.autoPauseSeconds ?? 20) * 1000);
+  const autoLapKmRef = useRef(0);
+  const autoLapStartDistanceRef = useRef(0);
+  const autoLapStartMovingRef = useRef(0);
   const lastDistanceRef = useRef(0);
   const lastDistanceTimeRef = useRef<number | null>(null);
 
@@ -176,6 +179,26 @@ export function useRecording(options?: UseRecordingOptions) {
           // ignore TTS errors
         }
       }
+    }
+
+    // Auto-lap every kilometre.
+    const km = Math.floor(distanceRef.current / 1000);
+    if (km > autoLapKmRef.current && km >= 1) {
+      const lapDistance = distanceRef.current - autoLapStartDistanceRef.current;
+      const lapDuration = movingSeconds() - autoLapStartMovingRef.current;
+      if (lapDistance >= 900 && lapDuration > 0) {
+        const newLap: RecordingLap = {
+          index: lapsRef.current.length + 1,
+          distanceM: lapDistance,
+          durationS: lapDuration,
+          paceSPerKm: (lapDuration / lapDistance) * 1000,
+        };
+        lapsRef.current = [...lapsRef.current, newLap];
+        setState((prev) => ({ ...prev, laps: lapsRef.current }));
+      }
+      autoLapKmRef.current = km;
+      autoLapStartDistanceRef.current = distanceRef.current;
+      autoLapStartMovingRef.current = movingSeconds();
     }
 
     const instantPace = paceFromSpeed(coords.speed);
@@ -263,6 +286,9 @@ export function useRecording(options?: UseRecordingOptions) {
     lastAnnouncedKmRef.current = 0;
     lastDistanceRef.current = 0;
     lastDistanceTimeRef.current = Date.now();
+    autoLapKmRef.current = 0;
+    autoLapStartDistanceRef.current = 0;
+    autoLapStartMovingRef.current = 0;
     startedAtRef.current = Date.now();
     statusRef.current = 'recording';
 

@@ -44,10 +44,20 @@ export default function StatsScreen() {
     const thisWeekStart = startOfWeek(now);
     const lastWeekStart = thisWeekStart - 7 * 86400000;
 
+    const thisMonthStart = new Date(now);
+    thisMonthStart.setDate(1);
+    thisMonthStart.setHours(0, 0, 0, 0);
+    const thisMonthStartMs = thisMonthStart.getTime();
+    const lastMonthStart = new Date(thisMonthStart);
+    lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
+    const lastMonthStartMs = lastMonthStart.getTime();
+
     return {
       all: totalsOf(activities),
       thisWeek: totalsOf(activitiesBetween(activities, thisWeekStart, now + 1)),
       lastWeek: totalsOf(activitiesBetween(activities, lastWeekStart, thisWeekStart)),
+      thisMonth: totalsOf(activitiesBetween(activities, thisMonthStartMs, now + 1)),
+      lastMonth: totalsOf(activitiesBetween(activities, lastMonthStartMs, thisMonthStartMs)),
       buckets: now ? weeklyBuckets(activities, 8, now) : [],
       records: recordsOf(activities),
       streakNow: now ? currentStreakWithFreeze(activities, now, settings.streakFreezes) : 0,
@@ -74,6 +84,8 @@ export default function StatsScreen() {
     all,
     thisWeek,
     lastWeek,
+    thisMonth,
+    lastMonth,
     buckets,
     records,
     streakNow,
@@ -109,6 +121,25 @@ export default function StatsScreen() {
           </View>
           <Text style={styles.heroSub}>{all.count} buổi chạy đã ghi lại</Text>
         </View>
+
+        {thisMonth.count > 0 || lastMonth.count > 0 ? (
+          <View style={styles.monthCard}>
+            <Text style={styles.monthTitle}>Tháng này</Text>
+            <View style={styles.monthRow}>
+              <Text style={styles.monthNum}>{u.dist(thisMonth.distanceM, 1)}</Text>
+              <Text style={styles.monthUnit}>{u.label}</Text>
+              <Text style={styles.monthDelta}>
+                {lastMonth.distanceM > 0
+                  ? `${deltaPct(thisMonth.distanceM, lastMonth.distanceM) > 0 ? '+' : ''}${deltaPct(thisMonth.distanceM, lastMonth.distanceM)}% so với tháng trước`
+                  : 'tháng đầu tiên'}
+              </Text>
+            </View>
+            <Text style={styles.monthSub}>
+              {thisMonth.count} buổi · pace TB {u.pace(thisMonth.distanceM > 0 ? (thisMonth.durationS / thisMonth.distanceM) * 1000 : null)}
+              {u.paceLabel}
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.grid}>
           <Tile label="Thời gian" value={formatDuration(all.durationS)} />
@@ -553,6 +584,20 @@ const createStyles = (c: Palette) =>
   },
   heroUnit: { fontSize: 17, fontWeight: '700', color: c.accent },
   heroSub: { fontSize: 13, color: c.textDim, marginTop: 2 },
+  monthCard: {
+    backgroundColor: c.surface,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.border,
+    padding: 14,
+    gap: 4,
+  },
+  monthTitle: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', color: c.textFaint },
+  monthRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  monthNum: { fontSize: 26, fontWeight: '800', color: c.text, fontVariant: ['tabular-nums'] },
+  monthUnit: { fontSize: 13, fontWeight: '700', color: c.accent },
+  monthDelta: { fontSize: 11, color: c.textDim, marginLeft: 6 },
+  monthSub: { fontSize: 12, color: c.textDim },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   tile: {
     width: '47.5%',
