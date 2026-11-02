@@ -36,6 +36,7 @@ import {
   updateActivityRunType,
   updateActivityTitle,
   updateActivityPhotos,
+  updateActivityTags,
 } from '@/db/activities';
 import { listGear, recomputeGearDistance, type Gear } from '@/db/gear';
 import { buildGpx, fileStamp, shareTextFile } from '@/lib/export';
@@ -77,6 +78,8 @@ export default function ActivityDetailScreen() {
   const [exporting, setExporting] = useState(false);
   const [notesDraft, setNotesDraft] = useState('');
   const [feelingDraft, setFeelingDraft] = useState<Feeling | null>(null);
+  const [tagsDraft, setTagsDraft] = useState('');
+  const [savingTags, setSavingTags] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   const [cardVariant, setCardVariant] = useState<ShareCardVariant>('classic');
   const [runTypeDraft, setRunTypeDraft] = useState<RunType | null>(null);
@@ -95,6 +98,7 @@ export default function ActivityDetailScreen() {
       setActivity(found);
       setNotesDraft(found?.notes ?? '');
       setFeelingDraft(found?.feeling ?? null);
+      setTagsDraft(found?.tags ?? '');
       setRunTypeDraft(found?.runType ?? null);
       if (found) {
         const prev = await getPreviousActivity(db, found.startedAt);
@@ -222,6 +226,21 @@ export default function ActivityDetailScreen() {
       Alert.alert('Có lỗi', 'Không lưu được ghi chú. Vui lòng thử lại.');
     } finally {
       setSavingNotes(false);
+    }
+  };
+
+  const saveTags = async () => {
+    if (!activity) return;
+    setSavingTags(true);
+    try {
+      const tags = tagsDraft.trim().replace(/\s+/g, ' ');
+      await updateActivityTags(db, activity.id, tags);
+      setActivity((prev) => (prev ? { ...prev, tags } : prev));
+      setTagsDraft(tags);
+    } catch {
+      Alert.alert('Có lỗi', 'Không lưu được nhãn.');
+    } finally {
+      setSavingTags(false);
     }
   };
 
@@ -753,6 +772,42 @@ export default function ActivityDetailScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHead}>
+            <Eyebrow>Nhãn</Eyebrow>
+            <Text style={styles.sectionHint}>phân cách bằng dấu phẩy</Text>
+          </View>
+          <TextInput
+            value={tagsDraft}
+            onChangeText={setTagsDraft}
+            placeholder="ví dụ: tempo, sáng, công viên"
+            placeholderTextColor={palette.textFaint}
+            style={styles.notesInput}
+            maxLength={200}
+            selectionColor={palette.accent}
+            onSubmitEditing={() => void saveTags()}
+          />
+          <View style={styles.notesFooter}>
+            <Text style={styles.notesCount}>{tagsDraft.length}/200</Text>
+            <Button
+              label={savingTags ? 'Đang lưu...' : 'Lưu nhãn'}
+              variant={tagsDraft !== (activity.tags ?? '') ? 'primary' : 'ghost'}
+              onPress={saveTags}
+              disabled={savingTags || tagsDraft === (activity.tags ?? '')}
+              style={styles.notesButton}
+            />
+          </View>
+          {(activity.tags ?? '').length > 0 ? (
+            <View style={styles.tagRow}>
+              {(activity.tags ?? '').split(',').map((t) => t.trim()).filter(Boolean).map((t) => (
+                <View key={t} style={styles.tagChip}>
+                  <Text style={styles.tagChipLabel}>{t}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHead}>
             <Eyebrow>Ảnh buổi chạy</Eyebrow>
             <Text style={styles.sectionHint}>{(activity.photos ?? []).length}/12</Text>
           </View>
@@ -1087,6 +1142,16 @@ const createStyles = (c: Palette) =>
     marginBottom: 14,
   },
   sectionHint: { fontSize: 10, color: c.textFaint },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  tagChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    backgroundColor: c.accentSoft,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.accentLine,
+  },
+  tagChipLabel: { fontSize: 11, fontWeight: '600', color: c.accent },
   photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   photoWrap: { width: 88, height: 88, borderRadius: radius.sm, overflow: 'hidden', position: 'relative' },
   photo: { width: '100%', height: '100%' },

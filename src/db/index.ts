@@ -73,6 +73,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
     'ALTER TABLE activities ADD COLUMN gear_id TEXT',
     'ALTER TABLE activities ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0',
     "ALTER TABLE activities ADD COLUMN photos TEXT NOT NULL DEFAULT '[]'",
+    "ALTER TABLE activities ADD COLUMN tags TEXT NOT NULL DEFAULT ''",
   ];
 
   for (const sql of alterColumns) {

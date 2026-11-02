@@ -45,6 +45,7 @@ export type ActivityRow = {
   gear_id: string | null;
   favorite: number;
   photos: string;
+  tags: string;
   created_at: number;
 };
 
@@ -60,6 +61,8 @@ export type ActivitySummary = {
   runType: RunType | null;
   /** Kept on the summary so the history search can match notes too. */
   notes: string;
+  /** Tags for filtering and search. */
+  tags: string;
   /** Heavily downsampled route, cheap to draw in lists. */
   preview: TrackPoint[];
 };
@@ -74,6 +77,7 @@ export type Activity = ActivitySummary & {
   gearId: string | null;
   favorite: boolean;
   photos: string[];
+  tags: string;
   route: TrackPoint[];
   splits: Split[];
 };

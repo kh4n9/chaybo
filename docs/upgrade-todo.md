@@ -47,7 +47,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 
 ## Lô D — Thông báo & nhắc nhở
 - ⏳ 36. Thông báo buổi tập theo kế hoạch
-- ⏳ 37. Nhắc sao lưu định kỳ
+- ✅ 37. Nhắc sao lưu định kỳ (đã có)
 - ⏳ 38. Nhắc nghỉ ngơi sau chạy dài
 - ⏳ 39. Nhắc uống nước hàng ngày
 - ⏳ 40. Tóm tắt tuần (notification CN)

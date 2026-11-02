@@ -97,7 +97,8 @@ export default function HistoryScreen() {
       if (!needle) return true;
       return (
         normalizeText(activity.title).includes(needle) ||
-        normalizeText(activity.notes ?? '').includes(needle)
+        normalizeText(activity.notes ?? '').includes(needle) ||
+        normalizeText(activity.tags ?? '').includes(needle)
       );
     });
 

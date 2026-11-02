@@ -14,7 +14,7 @@ import type {
 } from '@/lib/types';
 
 const SUMMARY_COLUMNS =
-  'id, title, started_at, duration_s, distance_m, avg_pace_s, elev_gain_m, feeling, run_type, notes, preview';
+  'id, title, started_at, duration_s, distance_m, avg_pace_s, elev_gain_m, feeling, run_type, notes, tags, preview';
 
 type SummaryRow = {
   id: string;
@@ -27,6 +27,7 @@ type SummaryRow = {
   feeling: number | null;
   run_type: string | null;
   notes: string | null;
+  tags: string | null;
   preview: string | null;
 };
 
@@ -58,6 +59,7 @@ function toSummary(row: SummaryRow): ActivitySummary {
     feeling: toFeeling(row.feeling),
     runType: toRunType(row.run_type),
     notes: row.notes ?? '',
+    tags: row.tags ?? '',
     preview: parseJson<TrackPoint[]>(row.preview, []),
   };
 }
@@ -82,6 +84,7 @@ function toActivity(row: ActivityRow): Activity {
     favorite: row.favorite === 1,
     notes: row.notes ?? '',
     photos: parseJson<string[]>(row.photos, []),
+    tags: row.tags ?? '',
     route: parseJson<TrackPoint[]>(row.route, []),
     preview: parseJson<TrackPoint[]>(row.preview, []),
     splits: parseJson<Split[]>(row.splits, []),
@@ -108,7 +111,7 @@ export async function getActivity(db: SQLiteDatabase, id: string): Promise<Activ
   return row ? toActivity(row) : null;
 }
 
-export type SaveActivityInput = Omit<Activity, 'id' | 'title' | 'preview' | 'notes' | 'feeling' | 'runType' | 'weather' | 'gearId' | 'favorite' | 'photos'> & {
+export type SaveActivityInput = Omit<Activity, 'id' | 'title' | 'preview' | 'notes' | 'feeling' | 'runType' | 'weather' | 'gearId' | 'favorite' | 'photos' | 'tags'> & {
   id?: string;
   title?: string;
   notes?: string;
@@ -118,6 +121,7 @@ export type SaveActivityInput = Omit<Activity, 'id' | 'title' | 'preview' | 'not
   gearId?: string | null;
   favorite?: boolean;
   photos?: string[];
+  tags?: string;
 };
 
 export function newActivityId(): string {
@@ -135,8 +139,8 @@ export async function saveActivity(
     `INSERT OR REPLACE INTO activities
       (id, title, started_at, ended_at, duration_s, elapsed_s, distance_m,
        avg_pace_s, best_pace_s, elev_gain_m, calories, route, preview, splits,
-       notes, feeling, run_type, weather, gear_id, favorite, photos, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       notes, feeling, run_type, weather, gear_id, favorite, photos, tags, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     input.title ?? 'Buổi chạy',
     input.startedAt,
@@ -158,6 +162,7 @@ export async function saveActivity(
     input.gearId ?? null,
     input.favorite ? 1 : 0,
     JSON.stringify(input.photos ?? []),
+    (input.tags ?? '').slice(0, 200),
     now,
   );
 
@@ -221,6 +226,14 @@ export async function updateActivityPhotos(
     JSON.stringify(photos.slice(0, 12)),
     id,
   );
+}
+
+export async function updateActivityTags(
+  db: SQLiteDatabase,
+  id: string,
+  tags: string,
+): Promise<void> {
+  await db.runAsync('UPDATE activities SET tags = ? WHERE id = ?', tags.slice(0, 200), id);
 }
 
 export async function getPreviousActivity(

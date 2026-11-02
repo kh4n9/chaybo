@@ -204,6 +204,7 @@ function sanitizeActivity(value: unknown, weightKg: number): Activity | null {
     photos: Array.isArray(value.photos)
       ? value.photos.filter((p): p is string => typeof p === 'string').slice(0, 12)
       : [],
+    tags: typeof value.tags === 'string' ? value.tags.slice(0, 200) : '',
     route,
     preview: makePreview(route),
     splits,
