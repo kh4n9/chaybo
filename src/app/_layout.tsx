@@ -7,6 +7,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { DATABASE_NAME, migrateDbIfNeeded } from '@/db';
 import { SettingsProvider } from '@/hooks/useSettings';
 import { useTheme } from '@/hooks/useTheme';
+import { BiometricGate } from '@/components/BiometricGate';
 import { darkColors } from '@/lib/theme';
 
 // Register the background location task at module scope (no-op in Expo Go / web).
@@ -31,6 +32,7 @@ function ThemedApp() {
   return (
     <>
       <StatusBar style={colors.statusBar} />
+      <BiometricGate>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -63,6 +65,7 @@ function ThemedApp() {
           }}
         />
       </Stack>
+      </BiometricGate>
     </>
   );
 }

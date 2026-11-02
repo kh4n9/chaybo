@@ -32,6 +32,8 @@ export type AppSettings = {
   voiceCoach: boolean;
   /** Auto-pause recording after this many seconds stationary (0 = off). */
   autoPauseSeconds: number;
+  /** Require Face ID / Touch ID to open the app. */
+  biometricLock: boolean;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -48,6 +50,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   planStartAt: 0,
   voiceCoach: false,
   autoPauseSeconds: 20,
+  biometricLock: false,
 };
 
 export const WEIGHT_RANGE = { min: 35, max: 160 } as const;
@@ -71,6 +74,7 @@ const COLUMN: Record<keyof AppSettings, string> = {
   planStartAt: 'plan_start_at',
   voiceCoach: 'voice_coach',
   autoPauseSeconds: 'auto_pause_seconds',
+  biometricLock: 'biometric_lock',
 };
 
 function numberFrom(
@@ -147,6 +151,9 @@ export async function readSettings(db: SQLiteDatabase): Promise<AppSettings> {
       0,
       120,
     ),
+    biometricLock:
+      values.get(COLUMN.biometricLock) === '1' ||
+      values.get(COLUMN.biometricLock) === 'true',
   };
 }
 

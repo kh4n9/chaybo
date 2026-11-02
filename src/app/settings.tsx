@@ -389,6 +389,25 @@ export default function SettingsScreen() {
           </View>
         </Section>
 
+        <Section title="Bảo mật">
+          <View style={styles.card}>
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleText}>
+                <Text style={styles.toggleLabel}>Khoá app bằng sinh trắc học</Text>
+                <Text style={styles.toggleHint}>
+                  Yêu cầu Face ID / Touch ID khi mở app. Tắt nếu thiết bị chưa cài đặt.
+                </Text>
+              </View>
+              <Switch
+                value={settings.biometricLock}
+                onValueChange={(biometricLock) => setSetting({ biometricLock })}
+                trackColor={{ false: palette.border, true: palette.accentFill }}
+                thumbColor={palette.surface}
+              />
+            </View>
+          </View>
+        </Section>
+
         <Section title="Cá nhân">
           <View style={styles.card}>
             <NumberRow
@@ -614,8 +633,9 @@ export default function SettingsScreen() {
                   <View style={styles.gearRow}>
                     <View style={styles.gearInfo}>
                       <Text style={styles.gearName}>{item.name}</Text>
-                      <Text style={styles.gearMeta}>
+                      <Text style={[styles.gearMeta, item.totalDistanceM >= 700000 && { color: palette.danger }]}>
                         {u.dist(item.totalDistanceM, 1)} {u.label} đã chạy
+                        {item.totalDistanceM >= 700000 ? ' · nên thay giày' : ''}
                       </Text>
                     </View>
                     <Pressable

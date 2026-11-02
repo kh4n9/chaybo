@@ -105,6 +105,7 @@ function sanitizeSettings(value: unknown): AppSettings | null {
       0,
       120,
     ),
+    biometricLock: value.biometricLock === true || value.biometricLock === 'true' || value.biometricLock === 1 || value.biometricLock === '1',
   };
 }
 
