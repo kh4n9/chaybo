@@ -54,9 +54,10 @@ export default function HistoryScreen() {
   const router = useRouter();
   const db = useSQLiteContext();
   const { activities, loading, refresh, fetchedAt } = useActivities();
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
   const [refreshing, setRefreshing] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [onboardStep, setOnboardStep] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [range, setRange] = useState<RangeKey>('all');
@@ -197,6 +198,7 @@ export default function HistoryScreen() {
   };
 
   return (
+    <>
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.topBar}>
         <Text style={styles.brand}>
@@ -537,12 +539,91 @@ export default function HistoryScreen() {
         }
       />
     </SafeAreaView>
+
+    {!settings.onboarded ? (
+      <View style={styles.onboardOverlay}>
+        <View style={styles.onboardCard}>
+          <Text style={styles.onboardTitle}>
+            {onboardStep === 0
+              ? 'Chào mừng đến chaybo.'
+              : onboardStep === 1
+                ? 'Ghi lại mỗi buổi chạy.'
+                : 'Xem thống kê & kỷ lục.'}
+          </Text>
+          <Text style={styles.onboardBody}>
+            {onboardStep === 0
+              ? 'App chạy hoàn toàn offline trên máy bạn. Không tài khoản, không máy chủ.'
+              : onboardStep === 1
+                ? 'Bấm nút tròn vàng chanh ở giữa thanh tab để bắt đầu ghi. GPS vẽ lộ trình realtime.'
+                : 'Tab Thống kê có tổng km, chuỗi ngày, mục tiêu, huy hiệu. Chi tiết buổi chạy có splits, best effort, ảnh chia sẻ.'}
+          </Text>
+          <View style={styles.onboardDots}>
+            {[0, 1, 2].map((i) => (
+              <View
+                key={i}
+                style={[styles.onboardDot, i === onboardStep && styles.onboardDotActive]}
+              />
+            ))}
+          </View>
+          <Pressable
+            onPress={() => {
+              if (onboardStep < 2) setOnboardStep(onboardStep + 1);
+              else void update({ onboarded: true });
+            }}
+            style={({ pressed }) => [styles.onboardButton, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={styles.onboardButtonLabel}>
+              {onboardStep < 2 ? 'Tiếp' : 'Bắt đầu'}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => void update({ onboarded: true })}
+            style={styles.onboardSkip}
+          >
+            <Text style={styles.onboardSkipLabel}>Bỏ qua</Text>
+          </Pressable>
+        </View>
+      </View>
+    ) : null}
+    </>
   );
 }
 
 const createStyles = (c: Palette) =>
   StyleSheet.create({
   safe: { flex: 1, backgroundColor: c.bg },
+  onboardOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  onboardCard: {
+    backgroundColor: c.surface,
+    borderRadius: radius.lg,
+    padding: 24,
+    width: '100%',
+    maxWidth: 360,
+    gap: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.border,
+  },
+  onboardTitle: { fontSize: 22, fontWeight: '800', color: c.text },
+  onboardBody: { fontSize: 14, color: c.textDim, lineHeight: 20 },
+  onboardDots: { flexDirection: 'row', gap: 6, justifyContent: 'center', marginTop: 4 },
+  onboardDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: c.border },
+  onboardDotActive: { backgroundColor: c.accent, width: 20 },
+  onboardButton: {
+    backgroundColor: c.accentFill,
+    borderRadius: radius.pill,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  onboardButtonLabel: { color: c.onAccent, fontSize: 14, fontWeight: '700' },
+  onboardSkip: { alignItems: 'center', paddingVertical: 6 },
+  onboardSkipLabel: { color: c.textFaint, fontSize: 12 },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',

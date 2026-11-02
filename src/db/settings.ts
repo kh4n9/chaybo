@@ -34,6 +34,8 @@ export type AppSettings = {
   autoPauseSeconds: number;
   /** Require Face ID / Touch ID to open the app. */
   biometricLock: boolean;
+  /** Whether the first-run onboarding has been dismissed. */
+  onboarded: boolean;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -51,6 +53,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   voiceCoach: false,
   autoPauseSeconds: 20,
   biometricLock: false,
+  onboarded: false,
 };
 
 export const WEIGHT_RANGE = { min: 35, max: 160 } as const;
@@ -75,6 +78,7 @@ const COLUMN: Record<keyof AppSettings, string> = {
   voiceCoach: 'voice_coach',
   autoPauseSeconds: 'auto_pause_seconds',
   biometricLock: 'biometric_lock',
+  onboarded: 'onboarded',
 };
 
 function numberFrom(
@@ -154,6 +158,9 @@ export async function readSettings(db: SQLiteDatabase): Promise<AppSettings> {
     biometricLock:
       values.get(COLUMN.biometricLock) === '1' ||
       values.get(COLUMN.biometricLock) === 'true',
+    onboarded:
+      values.get(COLUMN.onboarded) === '1' ||
+      values.get(COLUMN.onboarded) === 'true',
   };
 }
 
