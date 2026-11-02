@@ -36,6 +36,8 @@ export type AppSettings = {
   biometricLock: boolean;
   /** Whether the first-run onboarding has been dismissed. */
   onboarded: boolean;
+  /** Custom accent colour (hex, empty = default lime). */
+  accentColor: string;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -54,6 +56,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoPauseSeconds: 20,
   biometricLock: false,
   onboarded: false,
+  accentColor: '',
 };
 
 export const WEIGHT_RANGE = { min: 35, max: 160 } as const;
@@ -79,6 +82,7 @@ const COLUMN: Record<keyof AppSettings, string> = {
   autoPauseSeconds: 'auto_pause_seconds',
   biometricLock: 'biometric_lock',
   onboarded: 'onboarded',
+  accentColor: 'accent_color',
 };
 
 function numberFrom(
@@ -161,6 +165,7 @@ export async function readSettings(db: SQLiteDatabase): Promise<AppSettings> {
     onboarded:
       values.get(COLUMN.onboarded) === '1' ||
       values.get(COLUMN.onboarded) === 'true',
+    accentColor: values.get(COLUMN.accentColor) ?? '',
   };
 }
 

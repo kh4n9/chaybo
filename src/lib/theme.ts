@@ -148,3 +148,30 @@ export const monoNumber: TextStyle = {
   fontFamily: monoFont,
   fontVariant: ['tabular-nums'],
 };
+
+export function applyAccent(palette: Palette, accentHex: string): Palette {
+  if (!accentHex) return palette;
+  const fill = accentHex.startsWith('#') ? accentHex : `#${accentHex}`;
+  const onAccent = contrastColor(fill);
+  return {
+    ...palette,
+    accent: fill,
+    accentFill: fill,
+    accentLine: withAlpha(fill, 0.45),
+    accentSoft: withAlpha(fill, 0.12),
+    onAccent,
+  };
+}
+
+function contrastColor(hex: string): string {
+  const value = hex.replace('#', '');
+  const full =
+    value.length === 3
+      ? value.split('').map((ch) => ch + ch).join('')
+      : value;
+  const r = parseInt(full.slice(0, 2), 16) / 255;
+  const g = parseInt(full.slice(2, 4), 16) / 255;
+  const b = parseInt(full.slice(4, 6), 16) / 255;
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+  return lum > 0.6 ? '#08090A' : '#FFFFFF';
+}

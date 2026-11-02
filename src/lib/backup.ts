@@ -107,6 +107,7 @@ function sanitizeSettings(value: unknown): AppSettings | null {
     ),
     biometricLock: value.biometricLock === true || value.biometricLock === 'true' || value.biometricLock === 1 || value.biometricLock === '1',
     onboarded: value.onboarded === true || value.onboarded === 'true' || value.onboarded === 1 || value.onboarded === '1',
+    accentColor: typeof value.accentColor === 'string' ? value.accentColor.slice(0, 12) : '',
   };
 }
 

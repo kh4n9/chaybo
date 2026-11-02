@@ -351,6 +351,27 @@ export default function SettingsScreen() {
               value={settings.units}
               onChange={(key) => setSetting({ units: key === 'mi' ? 'mi' : 'km' })}
             />
+
+            <Text style={[styles.choiceLabel, styles.choiceLabelSpaced]}>Màu nhấn</Text>
+            <View style={styles.swatchRow}>
+              {['', '#D8FF3E', '#FF5A5F', '#3B82F6', '#A855F7', '#22C55E', '#F59E0B'].map((hex) => {
+                const active = (settings.accentColor || '') === hex;
+                return (
+                  <Pressable
+                    key={hex || 'default'}
+                    onPress={() => setSetting({ accentColor: hex })}
+                    style={({ pressed }) => [
+                      styles.swatch,
+                      { backgroundColor: hex || '#D8FF3E' },
+                      active && styles.swatchActive,
+                      pressed && { opacity: 0.7 },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={hex ? `Màu ${hex}` : 'Mặc định'}
+                  />
+                );
+              })}
+            </View>
           </View>
         </Section>
 
@@ -891,6 +912,9 @@ const createStyles = (c: Palette) =>
     paddingTop: 14,
   },
   choiceLabelSpaced: { paddingTop: 16 },
+  swatchRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingTop: 8 },
+  swatch: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: 'transparent' },
+  swatchActive: { borderColor: '#FFFFFF' },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 },
   toggleText: { flex: 1 },
   toggleLabel: { fontSize: 14, fontWeight: '600', color: c.text },
