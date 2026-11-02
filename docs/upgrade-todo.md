@@ -62,6 +62,6 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 ## Lô F — UI/UX
 - ⏳ 46. Onboarding lần đầu
 - ✅ 47. Empty states (đã có)
-- ⏳ 48. Tuỳ chỉnh màu accent
+- ✅ 48. Tuỳ chỉnh màu accent (swatches)
 - ⏳ 49. Widget màn hình chính (cần native) ❌
 - ⏳ 50. Live Activity (cần native) ❌
