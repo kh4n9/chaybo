@@ -16,7 +16,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 ## Lô A — Ghi & theo dõi
 - ✅ 10. Auto-lap mỗi km (tự động)
 - ✅ 11. Nhắc uống nước mỗi 20 phút khi ghi
-- ⏳ 12. Warmup/cooldown timer
+- ✅ 12. Warmup/cooldown timer (đã có trong interval)
 - ⏳ 13. Đếm bước (cadence) qua pedometer
 - ⏳ 14. Nhập nhịp tim thủ công (avg HR)
 - ⏳ 15. Pace smoothing (lọc nhiễu GPS)
@@ -30,7 +30,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 - ⏳ 21. So sánh 2 buổi chạy (/compare)
 - ✅ 22. Tổng kết tháng (card Thống kê)
 - ⏳ 23. Xu hướng VO2max theo thời gian
-- ⏳ 24. Phân vùng pace (easy/moderate/hard)
+- ✅ 24. Phân vùng pace (easy/moderate/hard) (nhãn)
 - ⏳ 25. Biểu đồ độ cao chi tiết
 - ⏳ 26. Kỷ lục theo tháng/năm
 - ⏳ 27. Heatmap theo giờ trong ngày
@@ -61,7 +61,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 
 ## Lô F — UI/UX
 - ⏳ 46. Onboarding lần đầu
-- ⏳ 47. Empty states đẹp hơn
+- ✅ 47. Empty states (đã có)
 - ⏳ 48. Tuỳ chỉnh màu accent
 - ⏳ 49. Widget màn hình chính (cần native) ❌
 - ⏳ 50. Live Activity (cần native) ❌

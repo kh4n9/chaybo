@@ -373,6 +373,22 @@ export default function StatsScreen() {
             </View>
             <Ionicons name="chevron-forward" size={16} color={palette.textFaint} />
           </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/compare')}
+            style={({ pressed }) => [styles.linkRow, pressed && { opacity: 0.6 }]}
+            accessibilityRole="button"
+            accessibilityLabel="So sánh 2 buổi chạy"
+          >
+            <View style={styles.linkIcon}>
+              <Ionicons name="git-compare-outline" size={17} color={palette.accent} />
+            </View>
+            <View style={styles.linkText}>
+              <Text style={styles.linkTitle}>So sánh 2 buổi chạy</Text>
+              <Text style={styles.linkHint}>Chọn 2 buổi để so sánh quãng đường, pace, độ cao</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={palette.textFaint} />
+          </Pressable>
         </Section>
 
         {activities.length > 0 ? (

@@ -43,6 +43,7 @@ function ThemedApp() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="activity/[id]" />
         <Stack.Screen name="records" />
+        <Stack.Screen name="compare" />
         <Stack.Screen name="calendar" />
         <Stack.Screen name="stretch" />
         <Stack.Screen name="plan" />
