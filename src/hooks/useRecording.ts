@@ -1,10 +1,12 @@
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
+import * as Speech from 'expo-speech';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { estimateCalories, elevationGain, haversine, isAcceptablePoint, paceFromSpeed } from '@/lib/geo';
 import { bestPaceFromSplits, computeSplits } from '@/lib/splits';
+import { formatPace } from '@/lib/format';
 import {
   setBackgroundLocationListener,
   startBackgroundLocation,
@@ -69,8 +71,14 @@ const INITIAL: RecordingState = {
   background: false,
 };
 
-export function useRecording() {
+export type UseRecordingOptions = { voiceCoach?: boolean };
+
+export function useRecording(options?: UseRecordingOptions) {
   const [state, setState] = useState<RecordingState>(INITIAL);
+
+  useEffect(() => {
+    voiceCoachRef.current = options?.voiceCoach ?? false;
+  }, [options?.voiceCoach]);
 
   const pointsRef = useRef<TrackPoint[]>([]);
   const distanceRef = useRef(0);
@@ -92,6 +100,8 @@ export function useRecording() {
   const autoPauseFnRef = useRef<() => void>(() => {});
   const autoResumeFnRef = useRef<() => void>(() => {});
   const backgroundRef = useRef(false);
+  const voiceCoachRef = useRef(options?.voiceCoach ?? false);
+  const lastAnnouncedKmRef = useRef(0);
 
   const clearTimers = useCallback(() => {
     if (tickRef.current) {
@@ -142,6 +152,24 @@ export function useRecording() {
     acceptNextRef.current = false;
     skipDistanceRef.current = false;
     pointsRef.current = [...pointsRef.current, point];
+
+    if (voiceCoachRef.current) {
+      const km = Math.floor(distanceRef.current / 1000);
+      if (km > 0 && km > lastAnnouncedKmRef.current) {
+        lastAnnouncedKmRef.current = km;
+        const paceSPerKm =
+          distanceRef.current > 0 ? (movingSeconds() / distanceRef.current) * 1000 : null;
+        const paceText = formatPace(paceSPerKm);
+        try {
+          Speech.speak(`${km} kilômét. Pace ${paceText}.`, {
+            language: 'vi-VN',
+            rate: 0.95,
+          });
+        } catch {
+          // ignore TTS errors
+        }
+      }
+    }
 
     const instantPace = paceFromSpeed(coords.speed);
 
@@ -212,6 +240,7 @@ export function useRecording() {
     lapsRef.current = [];
     lapStartDistanceRef.current = 0;
     lapStartMovingRef.current = 0;
+    lastAnnouncedKmRef.current = 0;
     startedAtRef.current = Date.now();
     statusRef.current = 'recording';
 
@@ -324,6 +353,12 @@ export function useRecording() {
     autoPausedRef.current = false;
     stationaryMsRef.current = 0;
     movingMsRef.current = 0;
+    lastAnnouncedKmRef.current = 0;
+    try {
+      Speech.stop();
+    } catch {
+      // ignore
+    }
     stopWatcher();
     clearTimers();
     void deactivateKeepAwake(KEEP_AWAKE_TAG);
@@ -361,7 +396,13 @@ export function useRecording() {
     lapsRef.current = [];
     lapStartDistanceRef.current = 0;
     lapStartMovingRef.current = 0;
+    lastAnnouncedKmRef.current = 0;
     backgroundRef.current = false;
+    try {
+      Speech.stop();
+    } catch {
+      // ignore
+    }
     void stopBackgroundLocation();
     setBackgroundLocationListener(null);
     setState(INITIAL);

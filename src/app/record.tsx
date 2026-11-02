@@ -33,7 +33,7 @@ export default function RecordScreen() {
   const router = useRouter();
   const db = useSQLiteContext();
   const { settings } = useSettings();
-  const rec = useRecording();
+  const rec = useRecording({ voiceCoach: settings.voiceCoach });
   const mapRef = useRef<MapView | null>(null);
   const [region, setRegion] = useState(DEFAULT_REGION);
   const [saving, setSaving] = useState(false);

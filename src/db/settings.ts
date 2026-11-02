@@ -28,6 +28,8 @@ export type AppSettings = {
   planLevel: PlanLevel;
   /** Epoch ms of the plan's first Monday. `0` means not configured. */
   planStartAt: number;
+  /** Speak distance/pace milestones aloud while recording. */
+  voiceCoach: boolean;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -42,6 +44,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   planGoal: '10k',
   planLevel: 'beginner',
   planStartAt: 0,
+  voiceCoach: false,
 };
 
 export const WEIGHT_RANGE = { min: 35, max: 160 } as const;
@@ -63,6 +66,7 @@ const COLUMN: Record<keyof AppSettings, string> = {
   planGoal: 'plan_goal',
   planLevel: 'plan_level',
   planStartAt: 'plan_start_at',
+  voiceCoach: 'voice_coach',
 };
 
 function numberFrom(
@@ -130,6 +134,9 @@ export async function readSettings(db: SQLiteDatabase): Promise<AppSettings> {
       0,
       Number.MAX_SAFE_INTEGER,
     ),
+    voiceCoach:
+      values.get(COLUMN.voiceCoach) === '1' ||
+      values.get(COLUMN.voiceCoach) === 'true',
   };
 }
 

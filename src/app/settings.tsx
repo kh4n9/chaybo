@@ -11,6 +11,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -350,6 +351,25 @@ export default function SettingsScreen() {
               value={settings.units}
               onChange={(key) => setSetting({ units: key === 'mi' ? 'mi' : 'km' })}
             />
+          </View>
+        </Section>
+
+        <Section title="Chạy bộ">
+          <View style={styles.card}>
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleText}>
+                <Text style={styles.toggleLabel}>Huấn luyện viên giọng nói</Text>
+                <Text style={styles.toggleHint}>
+                  Đọc to quãng đường và pace mỗi khi qua mốc 1 km (chỉ khi đang ghi).
+                </Text>
+              </View>
+              <Switch
+                value={settings.voiceCoach}
+                onValueChange={(voiceCoach) => setSetting({ voiceCoach })}
+                trackColor={{ false: palette.border, true: palette.accentFill }}
+                thumbColor={palette.surface}
+              />
+            </View>
           </View>
         </Section>
 
@@ -835,6 +855,10 @@ const createStyles = (c: Palette) =>
     paddingTop: 14,
   },
   choiceLabelSpaced: { paddingTop: 16 },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 },
+  toggleText: { flex: 1 },
+  toggleLabel: { fontSize: 14, fontWeight: '600', color: c.text },
+  toggleHint: { fontSize: 12, color: c.textDim, marginTop: 2, lineHeight: 16 },
   choiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, paddingTop: 8 },
   choiceChip: {
     paddingHorizontal: 12,
