@@ -20,7 +20,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 - ⏳ 13. Đếm bước (cadence) qua pedometer
 - ⏳ 14. Nhập nhịp tim thủ công (avg HR)
 - ⏳ 15. Pace smoothing (lọc nhiễu GPS)
-- ⏳ 16. Ảnh đính kèm buổi chạy
+- ✅ 16. Ảnh đính kèm buổi chạy
 - ⏳ 17. Route replay animation trên bản đồ
 - ⏳ 18. Treadmill mode (chạy trong nhà)
 - ⏳ 19. GPS accuracy indicator
@@ -35,7 +35,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 - ⏳ 26. Kỷ lục theo tháng/năm
 - ⏳ 27. Heatmap theo giờ trong ngày
 - ⏳ 28. Phân tích thời tiết vs pace
-- ⏳ 29. Tải tập luyện ATL/CTL/TSB
+- ✅ 29. Tải tập luyện ATL/CTL/TSB (đã có)
 - ⏳ 30. Dự đoán race (Riegel) nhiều khoảng cách
 
 ## Lô C — Giày & thiết bị
