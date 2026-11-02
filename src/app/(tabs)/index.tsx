@@ -172,6 +172,12 @@ export default function HistoryScreen() {
     ? `${new Date(settings.lastBackupAt).getDate()}/${new Date(settings.lastBackupAt).getMonth() + 1}/${new Date(settings.lastBackupAt).getFullYear()}`
     : 'chưa sao lưu';
 
+  const daysSinceLastRun =
+    activities.length > 0 && now
+      ? Math.floor((now - activities[0].startedAt) / 86400000)
+      : 0;
+  const restReminder = activities.length > 0 && daysSinceLastRun >= 3;
+
   const onRefresh = async () => {
     setRefreshing(true);
     await refresh();
@@ -466,6 +472,15 @@ export default function HistoryScreen() {
                 </View>
                 <Ionicons name="chevron-forward" size={14} color={palette.textFaint} />
               </Pressable>
+            ) : null}
+
+            {restReminder ? (
+              <View style={styles.restBanner}>
+                <Ionicons name="bed-outline" size={16} color={palette.accent} />
+                <Text style={styles.restText}>
+                  Đã {daysSinceLastRun} ngày chưa chạy — hôm nay chạy nhẹ để giữ nhịp?
+                </Text>
+              </View>
             ) : null}
 
             <View style={styles.sectionRow}>
@@ -795,6 +810,18 @@ const createStyles = (c: Palette) =>
   },
   backupTitle: { fontSize: 12, fontWeight: '700', color: c.text },
   backupHint: { fontSize: 10, color: c.textFaint, marginTop: 2 },
+  restBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderRadius: radius.md,
+    backgroundColor: c.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.border,
+  },
+  restText: { flex: 1, fontSize: 12, color: c.textDim },
   sectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
