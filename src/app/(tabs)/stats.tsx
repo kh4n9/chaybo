@@ -58,6 +58,15 @@ export default function StatsScreen() {
       lastWeek: totalsOf(activitiesBetween(activities, lastWeekStart, thisWeekStart)),
       thisMonth: totalsOf(activitiesBetween(activities, thisMonthStartMs, now + 1)),
       lastMonth: totalsOf(activitiesBetween(activities, lastMonthStartMs, thisMonthStartMs)),
+      monthBest: (() => {
+        const list = activitiesBetween(activities, thisMonthStartMs, now + 1);
+        if (list.length === 0) return { longest: null, fastest: null };
+        const longest = list.reduce((b, a) => (a.distanceM > b.distanceM ? a : b));
+        const fastest = list.reduce((b, a) =>
+          a.avgPaceS != null && (b.avgPaceS == null || a.avgPaceS < b.avgPaceS) ? a : b,
+        );
+        return { longest, fastest };
+      })(),
       buckets: now ? weeklyBuckets(activities, 8, now) : [],
       records: recordsOf(activities),
       streakNow: now ? currentStreakWithFreeze(activities, now, settings.streakFreezes) : 0,
@@ -87,6 +96,7 @@ export default function StatsScreen() {
     lastWeek,
     thisMonth,
     lastMonth,
+    monthBest,
     buckets,
     records,
     streakNow,
@@ -139,6 +149,20 @@ export default function StatsScreen() {
               {thisMonth.count} buổi · pace TB {u.pace(thisMonth.distanceM > 0 ? (thisMonth.durationS / thisMonth.distanceM) * 1000 : null)}
               {u.paceLabel}
             </Text>
+          </View>
+        ) : null}
+
+        {monthBest.longest ? (
+          <View style={styles.monthCard}>
+            <Text style={styles.monthTitle}>Kỷ lục tháng này</Text>
+            <Text style={styles.monthSub}>
+              Dài nhất: {u.dist(monthBest.longest.distanceM, 2)} {u.label} · {formatDayLabel(monthBest.longest.startedAt)}
+            </Text>
+            {monthBest.fastest && monthBest.fastest.avgPaceS ? (
+              <Text style={styles.monthSub}>
+                Nhanh nhất: {u.pace(monthBest.fastest.avgPaceS)}{u.paceLabel} · {formatDayLabel(monthBest.fastest.startedAt)}
+              </Text>
+            ) : null}
           </View>
         ) : null}
 

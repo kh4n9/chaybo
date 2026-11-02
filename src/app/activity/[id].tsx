@@ -143,7 +143,15 @@ export default function ActivityDetailScreen() {
     return activity.splits;
   }, [activity, u.unit]);
 
-  const paceValues = useMemo(() => splits.map((s) => 1000 / s.paceSPerKm), [splits]);
+  const paceValues = useMemo(() => {
+    const raw = splits.map((s) => 1000 / s.paceSPerKm);
+    // 3-point moving average to smooth GPS noise.
+    return raw.map((v, i) => {
+      const a = raw[i - 1] ?? v;
+      const b = raw[i + 1] ?? v;
+      return (a + v + b) / 3;
+    });
+  }, [splits]);
 
   const fastestSplitIndex = useMemo(() => {
     if (splits.length === 0) return 0;

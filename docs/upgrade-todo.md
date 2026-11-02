@@ -19,7 +19,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 - ✅ 12. Warmup/cooldown timer (đã có trong interval)
 - ✅ 13. Đếm bước (cadence) qua pedometer
 - ✅ 14. Nhập nhịp tim thủ công (avg HR)
-- ⏳ 15. Pace smoothing (lọc nhiễu GPS)
+- ✅ 15. Pace smoothing (lọc nhiễu GPS) (moving average)
 - ✅ 16. Ảnh đính kèm buổi chạy
 - ⏳ 17. Route replay animation trên bản đồ
 - ✅ 18. Treadmill mode (chạy trong nhà)
