@@ -15,7 +15,9 @@ import { buildBadges, earnedCount } from '@/lib/badges';
 import { longestStreak, trainingWeeks } from '@/lib/calendar';
 import { formatDayLabel, formatDuration, startOfWeek } from '@/lib/format';
 import { useUnit } from '@/hooks/useUnit';
+import MapView, { Polyline } from 'react-native-maps';
 import { currentStreakWithFreeze, freezesUsed, monthProgress, yearProgress } from '@/lib/goals';
+import { boundsOf } from '@/lib/geo';
 import { favouriteTimeBucket, favouriteWeekday, timeOfDayStats, weekdayStats } from '@/lib/rhythm';
 import { trainingLoad, trainingLoadLabel } from '@/lib/trainingLoad';
 import { bestVo2max } from '@/lib/vo2max';
@@ -116,6 +118,31 @@ export default function StatsScreen() {
   const weekDelta = deltaPct(thisWeek.distanceM, lastWeek.distanceM);
   const earned = earnedCount(badges);
   const visibleBadges = showAllBadges ? badges : badges.slice(0, BADGE_PREVIEW);
+
+  // All recorded routes, used to draw the "khu vực hay chạy" map.
+  const routeLines = useMemo(() => {
+    const out: { latitude: number; longitude: number }[][] = [];
+    for (const activity of activities) {
+      const pts = activity.preview.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+      if (pts.length < 2) continue;
+      out.push(pts.map((p) => ({ latitude: p.lat, longitude: p.lng })));
+      if (out.length >= 40) break;
+    }
+    return out;
+  }, [activities]);
+
+  const routePoints = useMemo(() => routeLines.flat(), [routeLines]);
+
+  const routeRegion = useMemo(() => {
+    const b = boundsOf(routePoints.map((p) => ({ lat: p.latitude, lng: p.longitude, alt: 0, t: 0 })));
+    if (!b) return null;
+    return {
+      latitude: b.latitude,
+      longitude: b.longitude,
+      latitudeDelta: b.latitudeDelta,
+      longitudeDelta: b.longitudeDelta,
+    };
+  }, [routePoints]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -417,6 +444,38 @@ export default function StatsScreen() {
 
         {activities.length > 0 ? (
           <Section title="Khu vực hay chạy">
+            {routeRegion ? (
+              <View style={styles.mapWrap}>
+                <MapView
+                  style={StyleSheet.absoluteFill}
+                  initialRegion={routeRegion}
+                  pointerEvents="none"
+                  userInterfaceStyle="dark"
+                  pitchEnabled={false}
+                  rotateEnabled={false}
+                  showsCompass={false}
+                  toolbarEnabled={false}
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                >
+                  {routeLines.map((line, index) => (
+                    <Polyline
+                      key={index}
+                      coordinates={line}
+                      strokeColor={palette.accent + '73'}
+                      strokeWidth={2}
+                      lineCap="round"
+                      lineJoin="round"
+                    />
+                  ))}
+                </MapView>
+              </View>
+            ) : (
+              <View style={styles.mapFallback}>
+                <Text style={styles.mapFallbackText}>Không có dữ liệu lộ trình</Text>
+              </View>
+            )}
+            <View style={{ height: 12 }} />
             <AreaHeatmap activities={activities} />
             <Text style={styles.chartFootnote}>
               Bản đồ nhiệt cục bộ từ {activities.length} buổi · không tải bản đồ trực tuyến
@@ -741,6 +800,26 @@ const createStyles = (c: Palette) =>
   deltaDown: { backgroundColor: c.dangerSoft },
   deltaText: { fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
   chartFootnote: { fontSize: 10, color: c.textFaint, marginTop: 10 },
+  mapWrap: {
+    width: '100%',
+    height: 200,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.border,
+    backgroundColor: c.surfaceAlt,
+  },
+  mapFallback: {
+    width: '100%',
+    height: 200,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.border,
+    backgroundColor: c.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapFallbackText: { fontSize: 12, color: c.textFaint, textAlign: 'center' },
   recordRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -27,7 +27,10 @@ export function buildAreaHeatmap(
   cols = 28,
   rows = 28,
 ): AreaHeatmap {
-  const routes = activities.filter((activity) => activity.preview.length >= 2);
+  const routes = activities.filter((activity) => {
+    const valid = activity.preview.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+    return valid.length >= 2;
+  });
   if (routes.length === 0) {
     return { lines: [], grid: new Array(cols * rows).fill(0), cols, rows, max: 0, count: 0 };
   }
@@ -39,11 +42,17 @@ export function buildAreaHeatmap(
 
   for (const activity of routes) {
     for (const point of activity.preview) {
+      if (!Number.isFinite(point.lat) || !Number.isFinite(point.lng)) continue;
       if (point.lat < minLat) minLat = point.lat;
       if (point.lat > maxLat) maxLat = point.lat;
       if (point.lng < minLng) minLng = point.lng;
       if (point.lng > maxLng) maxLng = point.lng;
     }
+  }
+
+  // If nothing valid was collected, fall back to empty.
+  if (!Number.isFinite(minLat)) {
+    return { lines: [], grid: new Array(cols * rows).fill(0), cols, rows, max: 0, count: 0 };
   }
 
   const latSpan = Math.max(maxLat - minLat, 1e-6);
