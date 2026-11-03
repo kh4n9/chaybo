@@ -58,11 +58,21 @@ jobs:
       - name: Liệt kê scheme
         run: xcodebuild -workspace ios/chaybo.xcworkspace -list
 
+      - name: Resolve Swift packages (chẩn đoán)
+        continue-on-error: true
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -workspace ios/chaybo.xcworkspace \
+            -scheme chaybo \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" 2>&1 | tail -n 40
+
       - name: Build archive (không ký)
         run: |
           set -o pipefail
           FORMATTER=cat
           if command -v xcbeautify >/dev/null 2>&1; then FORMATTER=xcbeautify; fi
+          LOG="$RUNNER_TEMP/build.log"
+          set +e
           xcodebuild \
             -workspace ios/chaybo.xcworkspace \
             -scheme chaybo \
@@ -70,11 +80,30 @@ jobs:
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/chaybo.xcarchive" \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_ENTITLEMENTS="" \
-            archive | $FORMATTER
+            archive 2>&1 | tee "$LOG" | $FORMATTER
+          STATUS=${PIPESTATUS[0]}
+          if [ "$STATUS" -ne 0 ]; then
+            echo "=== 40 dòng cuối của log ==="
+            tail -n 40 "$LOG"
+            echo "=== các dòng lỗi ==="
+            grep -nE "error:|Could not resolve|fatal" "$LOG" | tail -n 25 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit "$STATUS"
+          fi
+
+      - name: Lưu log build khi lỗi
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: ${{ runner.temp }}/build.log
+          retention-days: 7
 
       - name: Đóng gói .ipa
         run: |
