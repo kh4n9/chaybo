@@ -11,8 +11,13 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.chaybo.app",
+      "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMotionUsageDescription": "chaybo dùng cảm biến chuyển động để đếm nhịp bước chân khi bạn chạy.",
+        "NSPhotoLibraryUsageDescription": "chaybo cần truy cập thư viện ảnh để bạn đính kèm ảnh vào buổi chạy.",
+        "NSPhotoLibraryAddUsageDescription": "chaybo cần quyền lưu ảnh chia sẻ vào thư viện ảnh của bạn.",
+        "NSFaceIDUsageDescription": "chaybo dùng Face ID để khoá ứng dụng và bảo vệ dữ liệu chạy bộ của bạn."
       }
     },
     "android": {

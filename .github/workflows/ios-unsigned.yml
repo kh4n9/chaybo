@@ -1,0 +1,106 @@
+name: Build unsigned iOS IPA
+
+# Tạo file .ipa KHÔNG ký trên máy macOS của GitHub, để bạn tự ký lại bằng
+# Sideloadly + Apple ID miễn phí trên Windows.
+#
+# Cách chạy: tab Actions -> "Build unsigned iOS IPA" -> Run workflow
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ios-unsigned.yml'
+
+concurrency:
+  group: ios-unsigned
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 75
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Chọn Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.4'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: In phiên bản công cụ
+        run: |
+          xcodebuild -version
+          node --version
+          npm --version
+          pod --version
+
+      - name: Cài dependency JS
+        run: npm ci
+
+      - name: Sinh project iOS (prebuild)
+        run: npx expo prebuild --platform ios --clean
+
+      - name: Cài Pods (nếu prebuild chưa cài)
+        run: |
+          if [ ! -d ios/Pods ]; then
+            cd ios && pod install
+          fi
+
+      - name: Liệt kê scheme
+        run: xcodebuild -workspace ios/chaybo.xcworkspace -list
+
+      - name: Build archive (không ký)
+        run: |
+          set -o pipefail
+          FORMATTER=cat
+          if command -v xcbeautify >/dev/null 2>&1; then FORMATTER=xcbeautify; fi
+          xcodebuild \
+            -workspace ios/chaybo.xcworkspace \
+            -scheme chaybo \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/chaybo.xcarchive" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
+            archive | $FORMATTER
+
+      - name: Đóng gói .ipa
+        run: |
+          APP_PATH=$(find "$RUNNER_TEMP/chaybo.xcarchive/Products/Applications" -maxdepth 1 -name '*.app' | head -n 1)
+          echo "App: $APP_PATH"
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -R "$APP_PATH" "$RUNNER_TEMP/Payload/"
+          cd "$RUNNER_TEMP"
+          zip -qry chaybo-unsigned.ipa Payload
+          ls -lh chaybo-unsigned.ipa
+          shasum -a 256 chaybo-unsigned.ipa
+
+      - name: Lưu artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaybo-unsigned-ipa
+          path: ${{ runner.temp }}/chaybo-unsigned.ipa
+          retention-days: 30
+
+      - name: Tạo Release kèm file .ipa
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ipa-build-${{ github.run_number }}
+          name: chaybo IPA build ${{ github.run_number }}
+          body: |
+            Bản .ipa **chưa ký**, dùng để cài bằng Sideloadly (Apple ID miễn phí).
+            Hết hạn sau 7 ngày kể từ lúc cài.
+          files: ${{ runner.temp }}/chaybo-unsigned.ipa
+          draft: false
