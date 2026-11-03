@@ -6,7 +6,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 - ✅ 1. Giao diện sáng/tối toàn app
 - ✅ 2. Đơn vị km/mi toàn app
 - ✅ 3. Splits tái bucket theo dặm
-- ✅ 4. Background GPS + dev build (EAS)
+- ✅ 4. Background GPS + build IPA (GitHub Actions + Sideloadly)
 - ✅ 5. Voice coach TTS mỗi km
 - ✅ 6. Auto-pause cấu hình được + phát hiện đứng yên
 - ✅ 7. Khoá app bằng Face ID/Touch ID

@@ -174,7 +174,20 @@ SQLite, file `chaybo.db` trong sandbox của app. **Xoá app là mất toàn b�
 
 ## Build bản cài thật trên iOS
 
-Expo Go chỉ để chạy thử. Muốn cài app lên máy như app bình thường cần build bằng EAS (build trên cloud, không cần Mac):
+Expo Go chỉ để chạy thử. Có 2 cách cài app lên iPhone thật:
+
+**Cách 1 — miễn phí (đang dùng): GitHub Actions + Sideloadly**
+
+Repo có workflow build sẵn file `.ipa` **chưa ký** trên macOS của GitHub, bạn tải về và ký bằng
+Apple ID miễn phí với Sideloadly trên Windows:
+
+1. Tải `.ipa` mới nhất ở <https://github.com/kh4n9/chaybo/releases>
+2. Cài bằng Sideloadly (xem hướng dẫn chi tiết: [`docs/build-ipa.md`](docs/build-ipa.md))
+
+Hạn chế: chứng chỉ hết hạn sau **7 ngày**, tối đa 3 app cùng lúc, phải cài lại bằng cùng file IPA.
+Bù lại không cần Mac và không cần tài khoản trả phí.
+
+**Cách 2 — có Apple Developer Program (99 USD/năm): EAS Build**
 
 ```bash
 npx eas-cli@latest login
@@ -182,7 +195,7 @@ npx eas-cli@latest build:configure   # tạo eas.json nếu chưa có
 npx eas-cli@latest build --platform ios --profile preview
 ```
 
-- Cần **Apple ID**. Với **thiết bị thật** và TestFlight/App Store, cần **Apple Developer Program (99 USD/năm)**.
+- Cần **Apple Developer Program** cho thiết bị thật (ad-hoc) và TestFlight/App Store.
 - Cấu hình bundle id hiện tại: `com.chaybo.app` (sửa trong `app.json` nếu muốn tên khác).
 - Sau khi build xong, EAS gửi link cài đặt; mở bằng iPhone và làm theo hướng dẫn.
 
@@ -199,7 +212,8 @@ npx eas-cli@latest build --platform ios --profile development-simulator  # iOS S
 
 Trong dev build, màn hình Ghi sẽ tự xin quyền “Luôn cho phép”; nếu được cấp, app tiếp tục ghi khi tắt màn hình (iOS hiện thanh xanh “chaybo đang dùng vị trí của bạn”; Android hiện thông báo foreground service). Nếu bị từ chối, app vẫn ghi được khi ở foreground.
 
-**Lưu ý Windows:** không build iOS cục bộ được (cần Xcode/macOS). Chỉ dùng EAS cloud. Android có thể build cục bộ bằng `npx expo run:android` nếu cài Android Studio.
+**Lưu ý Windows:** không build iOS cục bộ được (cần Xcode/macOS). Dùng GitHub Actions
+(`.github/workflows/ios-unsigned.yml`) hoặc EAS cloud. Android có thể build cục bộ bằng `npx expo run:android` nếu cài Android Studio.
 
 ### HealthKit, Live Activity, widget (chưa tích hợp)
 
