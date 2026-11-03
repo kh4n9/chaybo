@@ -6,7 +6,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 - ✅ 1. Giao diện sáng/tối toàn app
 - ✅ 2. Đơn vị km/mi toàn app
 - ✅ 3. Splits tái bucket theo dặm
-- ✅ 4. Background GPS + build IPA (GitHub Actions + Sideloadly)
+- ✅ 4. Background GPS + build IPA (GitHub Actions + iLoader/Sideloadly)
 - ✅ 5. Voice coach TTS mỗi km
 - ✅ 6. Auto-pause cấu hình được + phát hiện đứng yên
 - ✅ 7. Khoá app bằng Face ID/Touch ID
@@ -64,4 +64,4 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 - ✅ 47. Empty states (đã có)
 - ✅ 48. Tuỳ chỉnh màu accent (swatches)
 - ⏳ 49. Widget màn hình chính (cần native) ❌
-- ⏳ 50. Live Activity (cần native) ❌
+- ✅ 50. Live Activity màn hình khoá + Dynamic Island (Swift, **không cần App Group**)
