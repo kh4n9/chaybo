@@ -48,6 +48,10 @@ jobs:
       - name: Cài dependency JS
         run: npm ci
 
+      # npm ci đã chạy postinstall; gọi lại cho tường minh trong log CI.
+      - name: Vá expo-modules-jsi cho Xcode 26 (Swift 6.2.3)
+        run: node scripts/patch-expo-modules-jsi.js
+
       - name: Sinh project iOS (prebuild)
         run: npx expo prebuild --platform ios --clean
 

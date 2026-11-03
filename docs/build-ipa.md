@@ -122,3 +122,20 @@ EAS sẽ hỏi Apple ID và tự tạo certificate + provisioning profile, trả
 - Build bằng `xcodebuild ... CODE_SIGNING_ALLOWED=NO` → `.xcarchive` → đóng gói `Payload/*.app` thành `.ipa`.
 - App dùng các module native: `expo-location` (background), `expo-sensors` (pedometer), `expo-image-picker`, `expo-local-authentication`, `expo-sqlite`, `react-native-maps`, `react-native-view-shot`, `expo-dev-client`.
 - `expo-dev-client` **không** bật dev launcher ở cấu hình Release, nên app chạy như bản thường.
+- `scripts/patch-expo-modules-jsi.js` (chạy tự động qua `postinstall`) vá lỗi Swift 6.2.3
+  trong `expo-modules-jsi@58.0.21` — xem mục 8.
+
+---
+
+## 8. Lỗi build đã gặp và cách xử lý
+
+| Triệu chứng | Nguyên nhân | Cách xử lý |
+| --- | --- | --- |
+| `xcodebuild: error: Could not resolve package dependencies:` | Xcode quá cũ (16.4) so với Expo SDK 58 (cần Swift 6.2) | Ghim `xcode-version: '26.3'` trong workflow |
+| `error: sending 'slot' risks causing data races` trong `JavaScriptObject.swift` | Bug của `expo-modules-jsi@58.0.21` với Swift 6.2.3 (Xcode 26.2+) — [expo/expo#52754](https://github.com/expo/expo/issues/52754) | `npm install` (chạy `postinstall`) hoặc `node scripts/patch-expo-modules-jsi.js` |
+| `Couldn't find any credentials suitable for internal distribution` (EAS) | Chưa có Apple Developer Program trả phí | Dùng quy trình Sideloadly ở trên |
+
+Nếu `node scripts/patch-expo-modules-jsi.js` báo *"Không khớp mã nguồn mong đợi"*: Expo đã
+nâng `expo-modules-jsi`, nhiều khả năng không cần bản vá nữa — cứ thử build lại, nếu vẫn lỗi
+thì cập nhật lại nội dung script theo issue ở trên.
+
