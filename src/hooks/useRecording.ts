@@ -475,7 +475,7 @@ export function useRecording(options?: UseRecordingOptions) {
     setState((prev) => ({ ...prev, laps: lapsRef.current }));
   }, [movingSeconds]);
 
-  const stop = useCallback((weightKg?: number): FinishedRun | null => {
+  const stop = useCallback((weightKg?: number, keepActivity = true): FinishedRun | null => {
     if (statusRef.current === 'idle' || startedAtRef.current == null) return null;
 
     const endedAt = Date.now();
@@ -510,15 +510,20 @@ export function useRecording(options?: UseRecordingOptions) {
     setState((prev) => ({ ...prev, status: 'idle', currentPaceS: null, autoPaused: false, background: false }));
 
     // Leave the final numbers on the Lock Screen; the system dismisses the
-    // activity by itself after a while.
-    endRunActivity(
-      buildRunActivityProps({
-        distanceM,
-        movingS: durationS,
-        unit: unitRef.current,
-        paused: false,
-      }),
-    );
+    // activity by itself after a while. A discarded run removes the card
+    // straight away instead.
+    if (keepActivity) {
+      endRunActivity(
+        buildRunActivityProps({
+          distanceM,
+          movingS: durationS,
+          unit: unitRef.current,
+          paused: false,
+        }),
+      );
+    } else {
+      endRunActivity(undefined, true);
+    }
 
     if (distanceM < 50) return null;
 

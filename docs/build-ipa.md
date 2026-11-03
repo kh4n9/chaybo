@@ -124,6 +124,13 @@ EAS sẽ hỏi Apple ID và tự tạo certificate + provisioning profile, trả
 - `expo-dev-client` **không** bật dev launcher ở cấu hình Release, nên app chạy như bản thường.
 - `scripts/patch-expo-modules-jsi.js` (chạy tự động qua `postinstall`) vá lỗi Swift 6.2.3
   trong `expo-modules-jsi@58.0.21` — xem mục 8.
+- Live Activity (số liệu trên màn hình khoá) do **Swift vẽ trực tiếp** trong widget extension
+  (`scripts/patch-expo-widgets-live-activity.js`). Cách này **không cần App Group** — Apple ID
+  miễn phí không cấp được quyền đó. Dữ liệu (km, thời gian, pace) đi kèm ActivityKit content
+  state, không qua App Group.
+- Bản build có thêm target `ExpoWidgetsTarget.appex` (bundle id `com.chaybo.app.ExpoWidgetsTarget`).
+  Khi ký bằng iLoader/Sideloadly, công cụ phải ký **cả extension lồng bên trong**; nếu cài đặt báo
+  lỗi, xem mục 8.
 
 ---
 
@@ -134,6 +141,7 @@ EAS sẽ hỏi Apple ID và tự tạo certificate + provisioning profile, trả
 | `xcodebuild: error: Could not resolve package dependencies:` | Xcode quá cũ (16.4) so với Expo SDK 58 (cần Swift 6.2) | Ghim `xcode-version: '26.3'` trong workflow |
 | `error: sending 'slot' risks causing data races` trong `JavaScriptObject.swift` | Bug của `expo-modules-jsi@58.0.21` với Swift 6.2.3 (Xcode 26.2+) — [expo/expo#52754](https://github.com/expo/expo/issues/52754) | `npm install` (chạy `postinstall`) hoặc `node scripts/patch-expo-modules-jsi.js` |
 | `Couldn't find any credentials suitable for internal distribution` (EAS) | Chưa có Apple Developer Program trả phí | Dùng quy trình Sideloadly ở trên |
+| Cài IPA báo lỗi chữ ký ở `ExpoWidgetsTarget.appex` | Apple ID miễn phí giới hạn 10 App ID/tuần, extension cần thêm 1 App ID; một số bản iLoader cũ không ký extension lồng | Cập nhật iLoader; hoặc xoá `"expo-widgets"` khỏi `plugins` trong `app.json` để build lại **không** có Live Activity (mọi thứ khác giữ nguyên) |
 
 Nếu `node scripts/patch-expo-modules-jsi.js` báo *"Không khớp mã nguồn mong đợi"*: Expo đã
 nâng `expo-modules-jsi`, nhiều khả năng không cần bản vá nữa — cứ thử build lại, nếu vẫn lỗi

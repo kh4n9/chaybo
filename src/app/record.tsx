@@ -168,7 +168,7 @@ export default function RecordScreen() {
           text: 'Huỷ buổi chạy',
           style: 'destructive',
           onPress: () => {
-            rec.stop();
+            rec.stop(undefined, false);
             rec.reset();
             router.back();
           },
