@@ -117,7 +117,7 @@ EAS sẽ hỏi Apple ID và tự tạo certificate + provisioning profile, trả
 ## 7. Ghi chú kỹ thuật
 
 - Workflow: `.github/workflows/ios-unsigned.yml`
-- Chạy trên `macos-15`, Xcode 16.4, Node 22.
+- Chạy trên `macos-15`, Xcode **26.3**, Node 22.
 - `npx expo prebuild --platform ios --clean` sinh project native (CNG — không commit thư mục `ios/`).
 - Build bằng `xcodebuild ... CODE_SIGNING_ALLOWED=NO` → `.xcarchive` → đóng gói `Payload/*.app` thành `.ipa`.
 - App dùng các module native: `expo-location` (background), `expo-sensors` (pedometer), `expo-image-picker`, `expo-local-authentication`, `expo-sqlite`, `react-native-maps`, `react-native-view-shot`, `expo-dev-client`.
