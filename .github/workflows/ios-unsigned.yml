@@ -53,7 +53,7 @@ jobs:
         run: node scripts/patch-expo-modules-jsi.js
 
       # Vẽ Live Activity bằng Swift trong widget extension, không cần App Group
-      # (Apple ID miễn phí không cấp được App Group).
+      # (Apple ID miễn phí không cấp được App Group). Xem docs/build-ipa.md §7.
       - name: Vá Live Activity của expo-widgets (không cần App Group)
         run: node scripts/patch-expo-widgets-live-activity.js
 
