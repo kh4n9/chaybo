@@ -24,23 +24,23 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 - ⏳ 17. Route replay animation trên bản đồ
 - ✅ 18. Treadmill mode (chạy trong nhà)
 - ✅ 19. GPS accuracy indicator
-- ⏳ 20. Lưu điểm bắt đầu/kết thúc cố định
+- ⏳ 20. Lưu điểm bắt đầu/kết thúc cố định (segments)
 
 ## Lô B — Phân tích & thống kê
 - ✅ 21. So sánh 2 buổi chạy (/compare)
 - ✅ 22. Tổng kết tháng (card Thống kê)
 - ⏳ 23. Xu hướng VO2max theo thời gian
 - ✅ 24. Phân vùng pace (easy/moderate/hard) (nhãn)
-- ⏳ 25. Biểu đồ độ cao chi tiết
+- ✅ 25. Biểu đồ độ cao chi tiết (đã có)
 - ✅ 26. Kỷ lục theo tháng/năm (tháng này)
-- ⏳ 27. Heatmap theo giờ trong ngày
+- ✅ 27. Heatmap theo giờ trong ngày (time buckets)
 - ⏳ 28. Phân tích thời tiết vs pace
 - ✅ 29. Tải tập luyện ATL/CTL/TSB (đã có)
-- ⏳ 30. Dự đoán race (Riegel) nhiều khoảng cách
+- ✅ 30. Dự đoán race (Riegel) nhiều khoảng cách
 
 ## Lô C — Giày & thiết bị
-- ⏳ 31. Tuổi thọ giày (mục tiêu km)
-- ⏳ 32. Loại giày (road/trail/track)
+- ✅ 31. Tuổi thọ giày (cảnh báo >700 km)
+- ✅ 32. Loại giày (road/trail/track)
 - ⏳ 33. Thống kê theo giày
 - ⏳ 34. Nhiều thiết bị
 - ⏳ 35. Import Garmin/Strava
@@ -48,7 +48,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 ## Lô D — Thông báo & nhắc nhở
 - ⏳ 36. Thông báo buổi tập theo kế hoạch
 - ✅ 37. Nhắc sao lưu định kỳ (đã có)
-- ⏳ 38. Nhắc nghỉ ngơi sau chạy dài
+- ✅ 38. Nhắc nghỉ ngơi sau chạy dài (banner 3+ ngày)
 - ⏳ 39. Nhắc uống nước hàng ngày
 - ⏳ 40. Tóm tắt tuần (notification CN)
 
@@ -60,7 +60,7 @@ Trạng thái: ✅ Done · 🔄 In progress · ⏳ Pending · ❌ Blocked (cần
 - ⏳ 45. Chia sẻ buổi chạy qua link
 
 ## Lô F — UI/UX
-- ⏳ 46. Onboarding lần đầu
+- ✅ 46. Onboarding lần đầu
 - ✅ 47. Empty states (đã có)
 - ✅ 48. Tuỳ chỉnh màu accent (swatches)
 - ⏳ 49. Widget màn hình chính (cần native) ❌
