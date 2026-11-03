@@ -7,7 +7,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { estimateCalories, elevationGain, haversine, isAcceptablePoint, paceFromSpeed } from '@/lib/geo';
 import { bestPaceFromSplits, computeSplits } from '@/lib/splits';
-import { formatPace } from '@/lib/format';
+import { formatPace, type DistanceUnit } from '@/lib/format';
+import {
+  buildRunActivityProps,
+  clearStaleRunActivities,
+  endRunActivity,
+  startRunActivity,
+  updateRunActivity,
+} from '@/lib/liveActivity';
 import {
   setBackgroundLocationListener,
   startBackgroundLocation,
@@ -79,7 +86,12 @@ const INITIAL: RecordingState = {
   accuracy: null,
 };
 
-export type UseRecordingOptions = { voiceCoach?: boolean; autoPauseSeconds?: number };
+export type UseRecordingOptions = {
+  voiceCoach?: boolean;
+  autoPauseSeconds?: number;
+  /** Unit used for the Lock Screen Live Activity (km or miles). */
+  unit?: DistanceUnit;
+};
 
 export function useRecording(options?: UseRecordingOptions) {
   const [state, setState] = useState<RecordingState>(INITIAL);
@@ -91,6 +103,10 @@ export function useRecording(options?: UseRecordingOptions) {
   useEffect(() => {
     autoPauseThresholdMsRef.current = (options?.autoPauseSeconds ?? 20) * 1000;
   }, [options?.autoPauseSeconds]);
+
+  useEffect(() => {
+    unitRef.current = options?.unit ?? 'km';
+  }, [options?.unit]);
 
   const pointsRef = useRef<TrackPoint[]>([]);
   const distanceRef = useRef(0);
@@ -116,6 +132,7 @@ export function useRecording(options?: UseRecordingOptions) {
   const pedometerSubRef = useRef<{ remove: () => void } | null>(null);
   const stepCountRef = useRef(0);
   const voiceCoachRef = useRef(options?.voiceCoach ?? false);
+  const unitRef = useRef<DistanceUnit>(options?.unit ?? 'km');
   const lastAnnouncedKmRef = useRef(0);
   const autoPauseThresholdMsRef = useRef((options?.autoPauseSeconds ?? 20) * 1000);
   const autoLapKmRef = useRef(0);
@@ -147,6 +164,26 @@ export function useRecording(options?: UseRecordingOptions) {
     const paused = pausedAccumMsRef.current + (pausedAtRef.current ? now - pausedAtRef.current : 0);
     return Math.max(0, (now - startedAtRef.current - paused) / 1000);
   }, []);
+
+  /**
+   * Mirror the run onto the Lock Screen. Throttled inside `updateRunActivity`,
+   * so it is safe to call on every GPS fix and every timer tick.
+   */
+  const pushActivity = useCallback(
+    (force = false) => {
+      if (statusRef.current === 'idle') return;
+      updateRunActivity(
+        buildRunActivityProps({
+          distanceM: distanceRef.current,
+          movingS: movingSeconds(),
+          unit: unitRef.current,
+          paused: statusRef.current === 'paused',
+        }),
+        force,
+      );
+    },
+    [movingSeconds],
+  );
 
   const onLocation = useCallback((location: Location.LocationObject) => {
     const coords = location.coords;
@@ -230,7 +267,11 @@ export function useRecording(options?: UseRecordingOptions) {
       cadence,
       accuracy: typeof coords.accuracy === 'number' ? coords.accuracy : null,
     }));
-  }, [movingSeconds]);
+
+    // GPS fixes also arrive while the app is in the background, which is what
+    // keeps the Lock Screen numbers fresh with the phone locked.
+    pushActivity();
+  }, [movingSeconds, pushActivity]);
 
   const startTick = useCallback(() => {
     clearTimers();
@@ -278,8 +319,11 @@ export function useRecording(options?: UseRecordingOptions) {
           movingMsRef.current = 0;
         }
       }
+
+      // Keeps the duration ticking on the Lock Screen even without a GPS fix.
+      pushActivity();
     }, 500);
-  }, [clearTimers, movingSeconds]);
+  }, [clearTimers, movingSeconds, pushActivity]);
 
   const start = useCallback(async (treadmill?: boolean) => {
     const isTreadmill = !!treadmill;
@@ -327,6 +371,10 @@ export function useRecording(options?: UseRecordingOptions) {
       startedAt: startedAtRef.current,
       background,
     });
+
+    startRunActivity(
+      buildRunActivityProps({ distanceM: 0, movingS: 0, unit: unitRef.current, paused: false }),
+    );
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     void activateKeepAwakeAsync(KEEP_AWAKE_TAG);
@@ -380,8 +428,9 @@ export function useRecording(options?: UseRecordingOptions) {
         movingS: movingSeconds(),
         currentPaceS: null,
       }));
+      pushActivity(true);
     },
-    [movingSeconds],
+    [movingSeconds, pushActivity],
   );
 
   const resumeRun = useCallback(() => {
@@ -396,7 +445,8 @@ export function useRecording(options?: UseRecordingOptions) {
     movingMsRef.current = 0;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setState((prev) => ({ ...prev, status: 'recording', autoPaused: false }));
-  }, []);
+    pushActivity(true);
+  }, [pushActivity]);
 
   const pause = useCallback(() => pauseRun(false), [pauseRun]);
   const resume = useCallback(() => resumeRun(), [resumeRun]);
@@ -459,6 +509,17 @@ export function useRecording(options?: UseRecordingOptions) {
 
     setState((prev) => ({ ...prev, status: 'idle', currentPaceS: null, autoPaused: false, background: false }));
 
+    // Leave the final numbers on the Lock Screen; the system dismisses the
+    // activity by itself after a while.
+    endRunActivity(
+      buildRunActivityProps({
+        distanceM,
+        movingS: durationS,
+        unit: unitRef.current,
+        paused: false,
+      }),
+    );
+
     if (distanceM < 50) return null;
 
     return {
@@ -502,7 +563,14 @@ export function useRecording(options?: UseRecordingOptions) {
     }
     void stopBackgroundLocation();
     setBackgroundLocationListener(null);
+    endRunActivity(undefined, true);
     setState(INITIAL);
+  }, []);
+
+  useEffect(() => {
+    // Recording state is not persisted, so anything still on the Lock Screen
+    // from a previous launch is stale.
+    clearStaleRunActivities();
   }, []);
 
   useEffect(() => {

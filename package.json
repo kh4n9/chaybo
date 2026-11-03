@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo/ui": "~58.0.26",
     "@expo/vector-icons": "^15.0.2",
     "expo": "~58.0.22",
     "expo-constants": "~58.0.14",
@@ -25,6 +26,7 @@
     "expo-sqlite": "~58.0.15",
     "expo-status-bar": "~58.0.4",
     "expo-task-manager": "~58.0.13",
+    "expo-widgets": "~58.0.26",
     "react": "19.3.0",
     "react-native": "0.88.1",
     "react-native-maps": "1.29.11",
@@ -46,7 +48,7 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "postinstall": "node scripts/patch-expo-modules-jsi.js"
+    "postinstall": "node scripts/patch-expo-modules-jsi.js && node scripts/patch-expo-widgets-live-activity.js"
   },
   "private": true
 }

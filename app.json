@@ -68,7 +68,8 @@
           "isAndroidForegroundServiceEnabled": true
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-widgets"
     ],
     "experiments": {
       "typedRoutes": true

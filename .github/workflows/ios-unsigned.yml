@@ -52,6 +52,11 @@ jobs:
       - name: Vá expo-modules-jsi cho Xcode 26 (Swift 6.2.3)
         run: node scripts/patch-expo-modules-jsi.js
 
+      # Vẽ Live Activity bằng Swift trong widget extension, không cần App Group
+      # (Apple ID miễn phí không cấp được App Group).
+      - name: Vá Live Activity của expo-widgets (không cần App Group)
+        run: node scripts/patch-expo-widgets-live-activity.js
+
       - name: Sinh project iOS (prebuild)
         run: npx expo prebuild --platform ios --clean
 
